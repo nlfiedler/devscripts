@@ -1,0 +1,20 @@
+#!/bin/sh
+#
+# Find files that appear to be text that contain incorrect EOL sequences
+# (e.g. CR, or any combination, instead of LF).
+#
+# $Id: $
+#
+
+# TODO: have an outer loop that iterates over the various file extensions,
+#       rather than having these lines commented out, which is dumb.
+#for FILE in `find . -iname "*.properties" -print`; do
+#for FILE in `find . -iname "manifest.mf" -print`; do
+for FILE in `find . -iname "*.xml" -print`; do
+#for FILE in `find . -iname "*.java" -print`; do
+#for FILE in `find . -iname "*.form" -print`; do
+    od -x $FILE | grep -i "0d" > /dev/null
+    if [ $? = 0 ]; then
+        echo $FILE
+    fi
+done

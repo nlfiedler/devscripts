@@ -1,0 +1,17 @@
+#!/bin/sh
+#
+# Find the @author tags in Java code and display the unique set of names.
+#
+# $Id: find-author 2910 2007-03-08 06:56:45Z nfiedler $
+#
+
+if [ -z "$1" ]; then
+    echo "Missing required path in which to find .java files!"
+    exit
+fi
+# There are tabs in the [ ] below, to capture spaces and tabs for removal.
+DIR=$1
+find $DIR -name "*.java" -print | xargs grep -ih "@author" | \
+sed -e 's/.*@author//' -e 's/^[ 	]*//' -e 's/[ 	]*$//' | \
+sort | \
+uniq -c

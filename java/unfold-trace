@@ -1,0 +1,14 @@
+#!/bin/sh
+#
+# Sed script to clean up Java stack traces sent in email.
+# Re-combine the lines that were folded after the 'at'
+#
+# $Id: unfold-trace 2910 2007-03-08 06:56:45Z nfiedler $
+#
+
+sed -e '
+/^[ \t]*at$/    {
+                N
+                s/\n/ /
+                }
+' $1

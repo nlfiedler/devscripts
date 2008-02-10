@@ -1,0 +1,17 @@
+#!/bin/sh
+#
+# Counts the number of .java files and the total number of lines in them.
+# Ignores .svn directories.
+#
+# $Id: metrics 1958 2005-08-25 05:41:26Z nfiedler $
+#
+
+COUNT=0
+TOTAL=0
+for FILE in `find . -name ".svn" -prune -o -name "*.java" -print`; do
+    let COUNT++
+    SIZE=`cat $FILE | wc -l`
+    let TOTAL+=SIZE
+done
+echo "File count: $COUNT"
+echo "Line count: $TOTAL"

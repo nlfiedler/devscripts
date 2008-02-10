@@ -1,0 +1,30 @@
+#!/bin/sh
+#
+# Script that searches jar files for matching expressions.
+# Used to find out which .jar file contains a particular class.
+#
+# $Id: jargrep 2910 2007-03-08 06:56:45Z nfiedler $
+#
+
+if [ -z "$1" ]; then
+    echo "Missing required directory argument!"
+    exit
+fi
+if [ -z "$2" ]; then
+    echo "Missing required pattern argument!"
+    exit
+fi
+if [ -z "$JAVA_HOME" ]; then
+    echo "Missing JAVA_HOME environment variable!"
+    exit
+fi
+
+DIR=$1
+PATTERN=$2
+
+for FILE in `find $DIR -type f \( -name "*.nbm" -o -name "*.?ar" -o -name "*.zip" \) -print`; do
+    $JAVA_HOME/bin/jar tf $FILE | grep -i $PATTERN > /dev/null
+    if [ $? = 0 ]; then
+        echo $FILE
+    fi
+done
