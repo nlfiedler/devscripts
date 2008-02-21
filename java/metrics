@@ -19,10 +19,14 @@
 
 COUNT=0
 TOTAL=0
+BYTES=0
 for FILE in `find . -name ".svn" -prune -o -name "*.java" -print`; do
     let COUNT++
     SIZE=`cat $FILE | wc -l`
     let TOTAL+=SIZE
+    BYTE=`cat $FILE | wc -c`
+    let BYTES+=BYTE
 done
 echo "File count: $COUNT"
 echo "Line count: $TOTAL"
+echo "Byte count: $BYTES"
