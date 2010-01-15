@@ -37,8 +37,10 @@ def client():
     #	//depot1/... //myp4client/depot1/...
     #	-//depot2/... //myp4client/depot2/...
     #
-    output = subprocess.Popen(["p4", "client", "-o"],
-            stdout=subprocess.PIPE).communicate()[0]
+    p4 = subprocess.Popen(["p4", "client", "-o"],
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    # Ignore the stderr output and only read the stdout output.
+    output = p4.communicate()[0]
     client = None
     root = None
     view = []
@@ -81,8 +83,10 @@ def opened(mapping):
     # Typical 'p4 opened' output:
     # //root/path/file#1 - add default change (text)
     #
-    output = subprocess.Popen(["p4", "opened"],
-            stdout=subprocess.PIPE).communicate()[0]
+    p4 = subprocess.Popen(["p4", "opened"],
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    # Ignore the error messages on stderr, only get the stdout output.
+    output = p4.communicate()[0]
     lines = output.splitlines()
     # Remove the trailing cruft, leaving only the file names.
     lines = [re.sub("#\d+ - .*$", "", line) for line in lines]
@@ -105,6 +109,7 @@ def missing():
             stdout=subprocess.PIPE)
     p4 = subprocess.Popen(["p4", "-x-", "have"], stdin=find.stdout,
             stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    # Ignore stdout output and get only the stderr output.
     output = p4.communicate()[1]
     lines = output.splitlines()
     cwd = os.getcwd()
