@@ -65,7 +65,7 @@ def client():
     except StopIteration:
         pass
     # Convert the paths to absolute client paths.
-    view = [v.replace("//%s/" % client, "%s/" % root) for v in view]
+    view = [v.replace("//%s" % client, root) for v in view]
     # Produce a map of depot paths to client paths.
     map = {}
     for v in view:
