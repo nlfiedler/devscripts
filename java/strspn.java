@@ -1,7 +1,7 @@
 /*
  * Copyright (C) 2007-2009 Nathan Fiedler
  *
- * $Id: strspn.java 23 2007-06-22 18:40:28Z nf151384 $
+ * $Id$
  */
 
 /**
