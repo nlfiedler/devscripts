@@ -50,7 +50,7 @@ def setprop(file, baton):
     svn_err = wc.prop_set("svn:eol-style", "native", file, baton)
     if svn_err is not None:
         print "Error: %s" % svn_err
-        exit
+        sys.exit(1)
 
 def main():
     # If argument is given, use that as top directory; otherwise use cwd.
