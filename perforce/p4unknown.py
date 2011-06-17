@@ -109,6 +109,7 @@ def missing():
             stdout=subprocess.PIPE)
     p4 = subprocess.Popen(["p4", "-x-", "have"], stdin=find.stdout,
             stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    # TODO: add a find.stdout.close() here to allow find to receive a SIGPIPE if p4 exits
     # Ignore stdout output and get only the stderr output.
     output = p4.communicate()[1]
     lines = output.splitlines()
