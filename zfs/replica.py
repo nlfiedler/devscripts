@@ -20,6 +20,7 @@
 #
 
 from datetime import datetime
+import errno
 import os
 import re
 import subprocess
@@ -35,30 +36,37 @@ def mksnapshot(fs):
     today = datetime.utcnow()
     tag = today.strftime("%Y-%m-%d-%H:%M")
     try:
-        retcode = subprocess.call(["zfs", "snapshot", "%s@%s" % (fs, tag)])
+        #print "zfs snapshot %s@replica:%s" % (fs, tag)
+        retcode = subprocess.call(["zfs", "snapshot", "%s@replica:%s" % (fs, tag)])
         if retcode < 0:
             print >>sys.stderr, "Child was terminated by signal", -retcode
             sys.exit(retcode)
     except OSError, e:
         print >>sys.stderr, "Execution failed:", e
-        sys.exit(-1)
+        sys.exit(1)
     return tag
 
 def snapshots(fs):
     """
-    Get the interesting snapshots for the given file system, such that
-    they are named in the ISO 8601 format (i.e. YYYY-mm-dd-HH:MM).
+    Get our mananged snapshots for the given file system, such that they
+    are named "replica:" followed by a date in the ISO 8601 format (i.e.
+    YYYY-mm-dd-HH:MM).
     """
+    #print "zfs list -t snapshot -Hr %s" % fs
     zfs = subprocess.Popen(["zfs", "list", "-t", "snapshot", "-Hr", fs],
                            stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     # Ignore the stderr output and only read the stdout output.
     output = zfs.communicate()[0]
+    if zfs.returncode != 0:
+        raise OSError(errno.EIO, "zfs list returned %d" % zfs.returncode)
     snaps = output.splitlines()
-    prog = re.compile("@\d{4}-\d{2}-\d{2}-\d{2}:\d{2}")
+    prog = re.compile("@replica:\d{4}-\d{2}-\d{2}-\d{2}:\d{2}")
     snaps = [snap for snap in snaps if prog.search(snap)]
     snaps = [snap.split('\t')[0] for snap in snaps]
     snaps = [snap.split('@')[1] for snap in snaps]
     snaps.sort()
+    #for snap in snaps:
+    #    print snap
     return snaps
 
 def sendsnapshot(src, dst, tag):
@@ -66,6 +74,7 @@ def sendsnapshot(src, dst, tag):
     Send a replication stream for a single snapshot from the source
     filesystem to the destination.
     """
+    #print "zfs send -R %s@%s | zfs recv -F %s" % (src, tag, dst)
     send = subprocess.Popen(["zfs", "send", "-R", "%s@%s" % (src, tag)],
                             stdout=subprocess.PIPE)
     recv = subprocess.Popen(["zfs", "recv", "-F", dst], stdin=send.stdout,
@@ -74,12 +83,17 @@ def sendsnapshot(src, dst, tag):
     send.stdout.close()
     # Read the outputs so the process finishes, but ignore them.
     recv.communicate()
+    if send.returncode != 0 and send.returncode is not None:
+        raise OSError(errno.EIO, "zfs send returned %d" % send.returncode)
+    if recv.returncode != 0 and send.returncode is not None:
+        raise OSError(errno.EIO, "zfs recv returned %d" % recv.returncode)
 
 def sendincremental(src, dst, tag1, tag2):
     """
     Send an incremental replication stream from the source filesystem to
     the destination that spans the two snapshots.
     """
+    #print "zfs send -R -I %s %s@%s | zfs recv -F %s" % (tag1, src, tag2, dst)
     send = subprocess.Popen(["zfs", "send", "-R", "-I", tag1, "%s@%s" % (src, tag2)],
                             stdout=subprocess.PIPE)
     recv = subprocess.Popen(["zfs", "recv", "-F", dst], stdin=send.stdout,
@@ -88,15 +102,22 @@ def sendincremental(src, dst, tag1, tag2):
     send.stdout.close()
     # Read the outputs so the process finishes, but ignore them.
     recv.communicate()
+    if send.returncode != 0 and send.returncode is not None:
+        raise OSError(errno.EIO, "zfs send returned %d" % send.returncode)
+    if recv.returncode != 0 and send.returncode is not None:
+        raise OSError(errno.EIO, "zfs recv returned %d" % recv.returncode)
 
 def destroysnap(fs, snap):
     """
     Destroy the named snapshot in the given file system.
     """
+    #print "zfs destroy %s@%s" % (fs, snap)
     zfs = subprocess.Popen(["zfs", "destroy", "%s@%s" % (fs, snap)],
                            stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     # Read the outputs so the process finishes, but ignore them.
     zfs.communicate()
+    if zfs.returncode != 0:
+        raise OSError(errno.EIO, "zfs destroy returned %d" % zfs.returncode)
 
 def main():
     if len(sys.argv) < 3:
@@ -106,29 +127,39 @@ def main():
     src = sys.argv[1]
     dst = sys.argv[2]
 
-    mksnapshot(src)
-    snaps = snapshots(src)
-    if snaps is None:
-        print "Failed to create new snapshot in %s" % src
-        sys.exit(-1)
-    elif len(snaps) == 1:
-        sendsnapshot(src, dst, snaps[0])
-    else:
-        recent = snaps[-2:]
-        sendincremental(src, dst, recent[0], recent[1])
+    try:
+        mksnapshot(src)
+        snaps = snapshots(src)
+        if snaps is None or len(snaps) == 0:
+            print "Failed to create new snapshot in %s" % src
+            sys.exit(1)
+        dstsnaps = snapshots(dst)
+        if dstsnaps is not None and len(dstsnaps) > 0 and dstsnaps[-1] not in snaps:
+            print "Destination snapshots out of sync with source, destroy and try again."
+            sys.exit(1)
+        if len(snaps) == 1:
+            sendsnapshot(src, dst, snaps[0])
+        elif dstsnaps is None or len(dstsnaps) == 0:
+            sendsnapshot(src, dst, snaps[-1])
+        else:
+            recent = snaps[-2:]
+            sendincremental(src, dst, recent[0], recent[1])
 
-    # prune old snapshots in source file system
-    oldsnaps = snaps[:-2]
-    for snap in oldsnaps:
-        destroysnap(src, snap)
-    # prune old snapshots in destination file system
-    snaps = snapshots(dst)
-    if snaps is None:
-        print "Failed to create new snapshot in %s" % dst
-        sys.exit(-1)
-    oldsnaps = snaps[:-2]
-    for snap in oldsnaps:
-        destroysnap(dst, snap)
+        # prune old snapshots in source file system
+        oldsnaps = snaps[:-2]
+        for snap in oldsnaps:
+            destroysnap(src, snap)
+        # prune old snapshots in destination file system
+        dstsnaps = snapshots(dst)
+        if dstsnaps is None or len(dstsnaps) == 0:
+            print "Failed to create new snapshot in %s" % dst
+            sys.exit(1)
+        oldsnaps = dstsnaps[:-2]
+        for snap in oldsnaps:
+            destroysnap(dst, snap)
+    except OSError, e:
+        print >>sys.stderr, "Execution failed:", e
+        sys.exit(1)
 
 if __name__ == "__main__":
     main()
