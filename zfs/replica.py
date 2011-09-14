@@ -7,7 +7,7 @@
 # due to the mismatch in existing snapshots. This occurs because simply
 # listing a directory in the destination will modify the access times,
 # which causes a write to the file system. The alternative is to make
-# the destination read-only, but that is an extra step that which can be
+# the destination read-only, but that is an extra step which can be
 # easily avoided.
 #
 # To test this script, create two throw-away ZFS filesystems using the
@@ -18,13 +18,62 @@
 # [root@solaris]$ zpool create master $PWD/master
 # [root@solaris]$ zpool create slave $PWD/slave
 #
+# $Id$
+#
 
 from datetime import datetime
 import errno
+import getopt
 import os
 import re
 import subprocess
 import sys
+
+verbose = False
+debug = False
+
+def disableauto(fs):
+    """
+    Disables the auto-snapshot service for the given file system,
+    returning the previous setting (true or false).
+    """
+    # get the previous setting for the property
+    if verbose:
+        print "zfs get -Ho value com.sun:auto-snapshot %s" % (fs)
+    zfs = subprocess.Popen(["zfs", "get", "-Ho", "value", "com.sun:auto-snapshot", fs],
+                           stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    output = zfs.communicate()[0]
+    if zfs.returncode != 0:
+        raise OSError(errno.EIO, "zfs get returned %d" % zfs.returncode)
+    # set the auto-snapshot property to false
+    try:
+        if verbose:
+            print "zfs set com.sun:auto-snapshot=false %s" % (fs)
+        retcode = subprocess.call(["zfs", "set", "com.sun:auto-snapshot=false", fs])
+        if retcode < 0:
+            print >>sys.stderr, "Child was terminated by signal", -retcode
+            sys.exit(retcode)
+    except OSError, e:
+        print >>sys.stderr, "Execution failed:", e
+        sys.exit(1)
+    # return the previous setting
+    return output
+
+def restoreauto(fs, saved):
+    """
+    Restores the auto-snapshot property to the previously set value for
+    the given file system.
+    """
+    try:
+        if verbose:
+            print "zfs set com.sun:auto-snapshot=%s %s" % (saved, fs)
+        retcode = subprocess.call(["zfs", "set", "com.sun:auto-snapshot=%s" % saved, fs])
+        if retcode < 0:
+            print >>sys.stderr, "Child was terminated by signal", -retcode
+            sys.exit(retcode)
+    except OSError, e:
+        print >>sys.stderr, "Execution failed:", e
+        sys.exit(1)
 
 def mksnapshot(fs):
     """
@@ -36,7 +85,8 @@ def mksnapshot(fs):
     today = datetime.utcnow()
     tag = today.strftime("%Y-%m-%d-%H:%M")
     try:
-        #print "zfs snapshot %s@replica:%s" % (fs, tag)
+        if verbose:
+            print "zfs snapshot %s@replica:%s" % (fs, tag)
         retcode = subprocess.call(["zfs", "snapshot", "%s@replica:%s" % (fs, tag)])
         if retcode < 0:
             print >>sys.stderr, "Child was terminated by signal", -retcode
@@ -52,7 +102,8 @@ def snapshots(fs):
     are named "replica:" followed by a date in the ISO 8601 format (i.e.
     YYYY-mm-dd-HH:MM).
     """
-    #print "zfs list -t snapshot -Hr %s" % fs
+    if verbose:
+        print "zfs list -t snapshot -Hr %s" % fs
     zfs = subprocess.Popen(["zfs", "list", "-t", "snapshot", "-Hr", fs],
                            stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     # Ignore the stderr output and only read the stdout output.
@@ -65,8 +116,10 @@ def snapshots(fs):
     snaps = [snap.split('\t')[0] for snap in snaps]
     snaps = [snap.split('@')[1] for snap in snaps]
     snaps.sort()
-    #for snap in snaps:
-    #    print snap
+    if debug:
+        print "Existing snapshots on %s..." % fs
+        for snap in snaps:
+            print snap
     return snaps
 
 def sendsnapshot(src, dst, tag):
@@ -74,7 +127,8 @@ def sendsnapshot(src, dst, tag):
     Send a replication stream for a single snapshot from the source
     filesystem to the destination.
     """
-    #print "zfs send -R %s@%s | zfs recv -F %s" % (src, tag, dst)
+    if verbose:
+        print "zfs send -R %s@%s | zfs recv -F %s" % (src, tag, dst)
     send = subprocess.Popen(["zfs", "send", "-R", "%s@%s" % (src, tag)],
                             stdout=subprocess.PIPE)
     recv = subprocess.Popen(["zfs", "recv", "-F", dst], stdin=send.stdout,
@@ -93,7 +147,8 @@ def sendincremental(src, dst, tag1, tag2):
     Send an incremental replication stream from the source filesystem to
     the destination that spans the two snapshots.
     """
-    #print "zfs send -R -I %s %s@%s | zfs recv -F %s" % (tag1, src, tag2, dst)
+    if verbose:
+        print "zfs send -R -I %s %s@%s | zfs recv -F %s" % (tag1, src, tag2, dst)
     send = subprocess.Popen(["zfs", "send", "-R", "-I", tag1, "%s@%s" % (src, tag2)],
                             stdout=subprocess.PIPE)
     recv = subprocess.Popen(["zfs", "recv", "-F", dst], stdin=send.stdout,
@@ -111,7 +166,8 @@ def destroysnap(fs, snap):
     """
     Destroy the named snapshot in the given file system.
     """
-    #print "zfs destroy %s@%s" % (fs, snap)
+    if verbose:
+        print "zfs destroy %s@%s" % (fs, snap)
     zfs = subprocess.Popen(["zfs", "destroy", "%s@%s" % (fs, snap)],
                            stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     # Read the outputs so the process finishes, but ignore them.
@@ -120,14 +176,40 @@ def destroysnap(fs, snap):
         raise OSError(errno.EIO, "zfs destroy returned %d" % zfs.returncode)
 
 def main():
-    if len(sys.argv) < 3:
-        print "Usage: replica.py <srcfs> <dstfs>"
+    # parse the command line arguments
+    shortopts = "dhv"
+    longopts = ["debug", "help", "verbose"]
+    try:
+        opts, args = getopt.getopt(sys.argv[1:], shortopts, longopts)
+    except getopt.GetoptError, err:
+        print str(err)
+        print "Invoke with -h for help."
+        sys.exit(2)
+    for opt, val in opts:
+        if opt in ("-v", "--verbose"):
+            verbose = True
+        elif opt in ("-h", "--help"):
+            usage()
+            sys.exit()
+        elif opt in ("-d", "--debug"):
+            debug = True
+        else:
+            assert False, "unhandled option: %s" % opt
+
+    if len(args) < 2:
+        print "Usage: replica.py [options] <srcfs> <dstfs>"
+        print "Invoke with --help for helpful information"
         sys.exit(0)
 
-    src = sys.argv[1]
-    dst = sys.argv[2]
+    src = args[0]
+    dst = args[1]
 
     try:
+        # disable the auto-snapshot service to prevent spurious failures
+        assrc = disableauto(src)
+        asdst = disableauto(dst)
+        # make the new snapshot, get a list of existing snapshots,
+        # and decide whether to send a full stream or an incremental
         mksnapshot(src)
         snaps = snapshots(src)
         if snaps is None or len(snaps) == 0:
@@ -138,10 +220,13 @@ def main():
             print "Destination snapshots out of sync with source, destroy and try again."
             sys.exit(1)
         if len(snaps) == 1:
+            # send the initial snapshot
             sendsnapshot(src, dst, snaps[0])
         elif dstsnaps is None or len(dstsnaps) == 0:
+            # send the latest snapshot since the destination has none
             sendsnapshot(src, dst, snaps[-1])
         else:
+            # destination has matching snapshots, send an incremental
             recent = snaps[-2:]
             sendincremental(src, dst, recent[0], recent[1])
 
@@ -157,9 +242,32 @@ def main():
         oldsnaps = dstsnaps[:-2]
         for snap in oldsnaps:
             destroysnap(dst, snap)
+        # restore the auto-snapshot property on the file systems
+        restoreauto(dst, asdst)
+        restoreauto(src, assrc)
     except OSError, e:
         print >>sys.stderr, "Execution failed:", e
         sys.exit(1)
+
+def usage():
+    print """Usage: replica.py [-dhv] <srcfs> <dstfs>
+
+This script creates a snapshot on the source ZFS file system and sends
+that in the form of a replication stream to the destination file system.
+If a previous snapshot created by this script exists then this script
+will create a new snapshot and send an incremental replication stream to
+the destination. Older snapshots on both the source and destination will
+be automatically pruned such that the two most recent are retained.
+
+-h|--help
+\tPrints this usage information.
+
+-d|--debug
+\tDisplay debugging messages.
+
+-v|--verbose
+\tPrints information about what the script is doing at each step.
+"""
 
 if __name__ == "__main__":
     main()
