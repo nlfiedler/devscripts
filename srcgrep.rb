@@ -1,6 +1,6 @@
 #!/usr/bin/env ruby
 #
-# Copyright (C) 2007-2009 Nathan Fiedler
+# Copyright (C) 2007-2011 Nathan Fiedler
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -18,15 +18,16 @@
 
 # Script to recursively search a directory structure for source files that
 # contain a particular expression.
+#
+# TODO: rewrite this in Python or Go and have it seek a configuration file
+#       that defines extensions and excludes, otherwise use common defaults
 
 require 'optparse'
 
 # Typical source file extensions.
-EXTENSIONS = %w{ .c .java .js .php .pl .pm .py .rb .sh }
-# Additional "source" extensions that may be of interest.
-#MORE_EXTENSIONS = %w{ .erb .haml .html .rhtml .rxml .xml }
+EXTENSIONS = %w{ .java .pig .pl .pm .py .rb .sh .xml }
 # List of files we always exclude from our search.
-EXCLUDES = %w{ . .. .svn .hg vendor }
+EXCLUDES = %w{ . .. .svn .hg target }
 
 #
 # Perform a line-based grep of the named file, returning true if the
