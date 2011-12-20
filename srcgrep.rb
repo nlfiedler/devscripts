@@ -25,7 +25,7 @@
 require 'optparse'
 
 # Typical source file extensions.
-EXTENSIONS = %w{ .java .pig .pl .pm .py .rb .sh .xml }
+EXTENSIONS = %w{ .java .pig .pl .pm .py .rb .sh .xml .yaml }
 # List of files we always exclude from our search.
 EXCLUDES = %w{ . .. .svn .hg target }
 
@@ -74,7 +74,6 @@ def walk_tree(root, regex, reverse)
   end
 end
 
-case_match = true
 reverse = false
 show_help = false
 
@@ -82,9 +81,6 @@ show_help = false
 opts = OptionParser.new
 opts.on('-h', '--help', "Show help for this script.") do |val|
   show_help = true
-end
-opts.on('-i', '--ignore-case', "Use case-insensitive comparison.") do |val|
-  case_match = false
 end
 opts.on('-v', '--invert-match', "Show files that do _not_ match.") do |val|
   reverse = true
@@ -101,10 +97,7 @@ elsif rest.length != 1
   exit
 end
 
+# Make the regular expression case-insensitive.
+regex = /#{rest.pop}/i
 # Perform the search.
-regex = rest.pop
-unless case_match
-  # Make the regular expression case-insensitive.
-  regex = /#{regex}/i
-end
 walk_tree('.', regex, reverse)
