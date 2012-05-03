@@ -1,0 +1,26 @@
+#!/bin/sh
+
+# Create a new entry in the local domain under the category /Users
+dscl . -create /Users/hadoop
+dscl . -create /Users/hadoop UserShell /bin/bash
+dscl . -create /Users/hadoop RealName "Hadoop User"
+dscl . -create /Users/hadoop NFSHomeDirectory /Users/hadoop
+
+# Set the unique ID property.
+USERID=`dscl . -readall /Users UniqueID | grep -E 'UniqueID:' | cut -d ' ' -f 2 | sort -nr | head -1`
+let USERID++
+dscl . -create /Users/hadoop UniqueID $USERID
+
+# Set the primary group ID property.
+GROUPID=`dscl . -read /Groups/daemon PrimaryGroupID | cut -d ' ' -f 2`
+dscl . -create /Users/hadoop PrimaryGroupID $GROUPID
+
+# Set the password.
+dscl . -passwd /Users/hadoop hadoop
+
+# Set up password/phrase-less SSH access for the user.
+mkdir -p /Users/hadoop/.ssh
+ssh-keygen -t dsa -P '' -f /Users/hadoop/.ssh/id_dsa
+cat /Users/hadoop/.ssh/id_dsa.pub >> /Users/hadoop/.ssh/authorized_keys
+echo 'StrictHostKeyChecking no' > /Users/hadoop/.ssh/config
+chown -R hadoop:daemon /Users/hadoop
