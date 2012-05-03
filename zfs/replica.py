@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 #
 # Script to replicate one filesystem to another in a repeatable fashion.
 # Note that this script uses the -F option for 'zfs recv' such that the
