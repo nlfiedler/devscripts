@@ -24,13 +24,13 @@
 from datetime import datetime
 import errno
 import getopt
-import os
 import re
 import subprocess
 import sys
 
 verbose = False
 debug = False
+
 
 def disableauto(fs):
     """
@@ -39,17 +39,19 @@ def disableauto(fs):
     """
     # get the previous setting for the property
     if verbose:
-        print "zfs get -Ho value com.sun:auto-snapshot %s" % (fs)
-    zfs = subprocess.Popen(["zfs", "get", "-Ho", "value", "com.sun:auto-snapshot", fs],
+        print "zfs get -Ho value com.sun:auto-snapshot {}".format(fs)
+    zfs = subprocess.Popen(["zfs", "get", "-Ho", "value",
+                            "com.sun:auto-snapshot", fs],
                            stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     output = zfs.communicate()[0]
     if zfs.returncode != 0:
-        raise OSError(errno.EIO, "zfs get returned %d" % zfs.returncode)
+        raise OSError(errno.EIO, "zfs get returned {}".format(zfs.returncode))
     # set the auto-snapshot property to false
     try:
         if verbose:
-            print "zfs set com.sun:auto-snapshot=false %s" % (fs)
-        retcode = subprocess.call(["zfs", "set", "com.sun:auto-snapshot=false", fs])
+            print "zfs set com.sun:auto-snapshot=false {}".format(fs)
+        retcode = subprocess.call(["zfs", "set",
+                                   "com.sun:auto-snapshot=false", fs])
         if retcode < 0:
             print >>sys.stderr, "Child was terminated by signal", -retcode
             sys.exit(retcode)
@@ -59,6 +61,7 @@ def disableauto(fs):
     # return the previous setting
     return output
 
+
 def restoreauto(fs, saved):
     """
     Restores the auto-snapshot property to the previously set value for
@@ -66,8 +69,9 @@ def restoreauto(fs, saved):
     """
     try:
         if verbose:
-            print "zfs set com.sun:auto-snapshot=%s %s" % (saved, fs)
-        retcode = subprocess.call(["zfs", "set", "com.sun:auto-snapshot=%s" % saved, fs])
+            print "zfs set com.sun:auto-snapshot={} {}".format(saved, fs)
+        retcode = subprocess.call(["zfs", "set", "com.sun:auto-snapshot={}".
+                                   format(saved), fs])
         if retcode < 0:
             print >>sys.stderr, "Child was terminated by signal", -retcode
             sys.exit(retcode)
@@ -75,19 +79,22 @@ def restoreauto(fs, saved):
         print >>sys.stderr, "Execution failed:", e
         sys.exit(1)
 
+
 def mksnapshot(fs):
     """
     Creates a snapshot for fs whose name is today's date and time in the
     following format: %Y-%m-%d-%H:%M, and returns that name. The time is
     in UTC.
     """
-    # make a snapshot of the source file system with the date and time as the name
+    # make a snapshot of the source file system with the date and time
+    # as the name
     today = datetime.utcnow()
     tag = today.strftime("%Y-%m-%d-%H:%M")
     try:
         if verbose:
-            print "zfs snapshot %s@replica:%s" % (fs, tag)
-        retcode = subprocess.call(["zfs", "snapshot", "%s@replica:%s" % (fs, tag)])
+            print "zfs snapshot {}@replica:{}".format(fs, tag)
+        retcode = subprocess.call(["zfs", "snapshot",
+                                   "{}@replica:{}".format(fs, tag)])
         if retcode < 0:
             print >>sys.stderr, "Child was terminated by signal", -retcode
             sys.exit(retcode)
@@ -96,6 +103,7 @@ def mksnapshot(fs):
         sys.exit(1)
     return tag
 
+
 def snapshots(fs):
     """
     Get our mananged snapshots for the given file system, such that they
@@ -103,13 +111,13 @@ def snapshots(fs):
     YYYY-mm-dd-HH:MM).
     """
     if verbose:
-        print "zfs list -t snapshot -Hr %s" % fs
+        print "zfs list -t snapshot -Hr {}".format(fs)
     zfs = subprocess.Popen(["zfs", "list", "-t", "snapshot", "-Hr", fs],
                            stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     # Ignore the stderr output and only read the stdout output.
     output = zfs.communicate()[0]
     if zfs.returncode != 0:
-        raise OSError(errno.EIO, "zfs list returned %d" % zfs.returncode)
+        raise OSError(errno.EIO, "zfs list returned {}".format(zfs.returncode))
     snaps = output.splitlines()
     prog = re.compile("@replica:\d{4}-\d{2}-\d{2}-\d{2}:\d{2}")
     snaps = [snap for snap in snaps if prog.search(snap)]
@@ -117,10 +125,11 @@ def snapshots(fs):
     snaps = [snap.split('@')[1] for snap in snaps]
     snaps.sort()
     if debug:
-        print "Existing snapshots on %s..." % fs
+        print "Existing snapshots on {}...".format(fs)
         for snap in snaps:
             print snap
     return snaps
+
 
 def sendsnapshot(src, dst, tag):
     """
@@ -128,8 +137,8 @@ def sendsnapshot(src, dst, tag):
     filesystem to the destination.
     """
     if verbose:
-        print "zfs send -R %s@%s | zfs recv -F %s" % (src, tag, dst)
-    send = subprocess.Popen(["zfs", "send", "-R", "%s@%s" % (src, tag)],
+        print "zfs send -R {}@{} | zfs recv -F {}".format(src, tag, dst)
+    send = subprocess.Popen(["zfs", "send", "-R", "{}@{}".format(src, tag)],
                             stdout=subprocess.PIPE)
     recv = subprocess.Popen(["zfs", "recv", "-F", dst], stdin=send.stdout,
                             stdout=subprocess.PIPE)
@@ -138,9 +147,12 @@ def sendsnapshot(src, dst, tag):
     # Read the outputs so the process finishes, but ignore them.
     recv.communicate()
     if send.returncode != 0 and send.returncode is not None:
-        raise OSError(errno.EIO, "zfs send returned %d" % send.returncode)
+        raise OSError(errno.EIO, "zfs send returned {}".
+                      format(send.returncode))
     if recv.returncode != 0 and send.returncode is not None:
-        raise OSError(errno.EIO, "zfs recv returned %d" % recv.returncode)
+        raise OSError(errno.EIO, "zfs recv returned {}".
+                      format(recv.returncode))
+
 
 def sendincremental(src, dst, tag1, tag2):
     """
@@ -148,8 +160,10 @@ def sendincremental(src, dst, tag1, tag2):
     the destination that spans the two snapshots.
     """
     if verbose:
-        print "zfs send -R -I %s %s@%s | zfs recv -F %s" % (tag1, src, tag2, dst)
-    send = subprocess.Popen(["zfs", "send", "-R", "-I", tag1, "%s@%s" % (src, tag2)],
+        print "zfs send -R -I {} {}@{} | zfs recv -F {}".\
+            format(tag1, src, tag2, dst)
+    send = subprocess.Popen(["zfs", "send", "-R", "-I", tag1, "{}@{}".\
+                                 format(src, tag2)],
                             stdout=subprocess.PIPE)
     recv = subprocess.Popen(["zfs", "recv", "-F", dst], stdin=send.stdout,
                             stdout=subprocess.PIPE)
@@ -158,27 +172,32 @@ def sendincremental(src, dst, tag1, tag2):
     # Read the outputs so the process finishes, but ignore them.
     recv.communicate()
     if send.returncode != 0 and send.returncode is not None:
-        raise OSError(errno.EIO, "zfs send returned %d" % send.returncode)
+        raise OSError(errno.EIO, "zfs send returned {}".
+                      format(send.returncode))
     if recv.returncode != 0 and send.returncode is not None:
-        raise OSError(errno.EIO, "zfs recv returned %d" % recv.returncode)
+        raise OSError(errno.EIO, "zfs recv returned {}".
+                      format(recv.returncode))
+
 
 def destroysnap(fs, snap):
     """
     Destroy the named snapshot in the given file system.
     """
     if verbose:
-        print "zfs destroy %s@%s" % (fs, snap)
-    zfs = subprocess.Popen(["zfs", "destroy", "%s@%s" % (fs, snap)],
+        print "zfs destroy {}@{}".format(fs, snap)
+    zfs = subprocess.Popen(["zfs", "destroy", "{}@{}".format(fs, snap)],
                            stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     # Read the outputs so the process finishes, but ignore them.
     zfs.communicate()
     if zfs.returncode != 0:
-        raise OSError(errno.EIO, "zfs destroy returned %d" % zfs.returncode)
+        raise OSError(errno.EIO, "zfs destroy returned {}".
+                      format(zfs.returncode))
+
 
 def main():
     # parse the command line arguments
-    shortopts = "dhv"
-    longopts = ["debug", "help", "verbose"]
+    shortopts = "h"
+    longopts = ["help"]
     try:
         opts, args = getopt.getopt(sys.argv[1:], shortopts, longopts)
     except getopt.GetoptError, err:
@@ -186,15 +205,11 @@ def main():
         print "Invoke with -h for help."
         sys.exit(2)
     for opt, val in opts:
-        if opt in ("-v", "--verbose"):
-            verbose = True
-        elif opt in ("-h", "--help"):
+        if opt in ("-h", "--help"):
             usage()
             sys.exit()
-        elif opt in ("-d", "--debug"):
-            debug = True
         else:
-            assert False, "unhandled option: %s" % opt
+            assert False, "unhandled option: {}".format(opt)
 
     if len(args) < 2:
         print "Usage: replica.py [options] <srcfs> <dstfs>"
@@ -213,11 +228,13 @@ def main():
         mksnapshot(src)
         snaps = snapshots(src)
         if snaps is None or len(snaps) == 0:
-            print "Failed to create new snapshot in %s" % src
+            print "Failed to create new snapshot in {}".format(src)
             sys.exit(1)
         dstsnaps = snapshots(dst)
-        if dstsnaps is not None and len(dstsnaps) > 0 and dstsnaps[-1] not in snaps:
-            print "Destination snapshots out of sync with source, destroy and try again."
+        if dstsnaps is not None and len(dstsnaps) > 0 \
+                and dstsnaps[-1] not in snaps:
+            print "Destination snapshots out of sync with source, " +\
+                "destroy and try again."
             sys.exit(1)
         if len(snaps) == 1:
             # send the initial snapshot
@@ -237,7 +254,7 @@ def main():
         # prune old snapshots in destination file system
         dstsnaps = snapshots(dst)
         if dstsnaps is None or len(dstsnaps) == 0:
-            print "Failed to create new snapshot in %s" % dst
+            print "Failed to create new snapshot in {}".format(dst)
             sys.exit(1)
         oldsnaps = dstsnaps[:-2]
         for snap in oldsnaps:
@@ -249,8 +266,9 @@ def main():
         print >>sys.stderr, "Execution failed:", e
         sys.exit(1)
 
+
 def usage():
-    print """Usage: replica.py [-dhv] <srcfs> <dstfs>
+    print """Usage: replica.py [-h] <srcfs> <dstfs>
 
 This script creates a snapshot on the source ZFS file system and sends
 that in the form of a replication stream to the destination file system.
@@ -261,12 +279,6 @@ be automatically pruned such that the two most recent are retained.
 
 -h|--help
 \tPrints this usage information.
-
--d|--debug
-\tDisplay debugging messages.
-
--v|--verbose
-\tPrints information about what the script is doing at each step.
 """
 
 if __name__ == "__main__":

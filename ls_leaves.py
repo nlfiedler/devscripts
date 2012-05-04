@@ -8,6 +8,7 @@
 import os
 import sys
 
+
 def main():
     # If arguments are given, use them as a starting point.
     paths = []
@@ -16,7 +17,8 @@ def main():
     else:
         paths.append('.')
 
-    # Walk the directory tree looking for directories with no child directories.
+    # Walk the directory tree looking for directories with no child
+    # directories.
     leaves = []
     for path in paths:
         for root, dirs, files in os.walk(path):

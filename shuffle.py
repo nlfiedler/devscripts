@@ -7,6 +7,7 @@ import os.path
 import random
 import sys
 
+
 def main():
     if len(sys.argv) == 1:
         print "Usage: %s <inputfile>" % os.path.basename(sys.argv[0])
@@ -15,7 +16,7 @@ def main():
             lines = f.readlines()
     random.shuffle(lines)
     for line in lines:
-        print line, # suppress trailing newline
+        print line,  # suppress trailing newline
 
 if __name__ == "__main__":
     main()

@@ -26,6 +26,7 @@ import re
 import subprocess
 import sys
 
+
 def client():
     """Returns mapping of client view with normalized client paths."""
     #
@@ -73,6 +74,7 @@ def client():
         map[k] = v
     return map
 
+
 def opened(mapping):
     """
     Returns a normalized list of files opened by the client.
@@ -90,6 +92,7 @@ def opened(mapping):
     lines = output.splitlines()
     # Remove the trailing cruft, leaving only the file names.
     lines = [re.sub("#\d+ - .*$", "", line) for line in lines]
+
     # Substitute the Perforce path with the client path.
     def normalize(path):
         for k in mapping:
@@ -98,6 +101,7 @@ def opened(mapping):
         return path
     lines = [normalize(line) for line in lines]
     return lines
+
 
 def missing():
     """Returns a normalized list of files unknown to Perforce."""
@@ -114,6 +118,7 @@ def missing():
     output = p4.communicate()[1]
     lines = output.splitlines()
     cwd = os.getcwd()
+
     # Remove the trailing cruft, leaving only the file names, and
     # convert them to absolute client paths.
     def normalize(str):
@@ -121,6 +126,7 @@ def missing():
         return re.sub("^\.", cwd, s)
     lines = [normalize(line) for line in lines]
     return lines
+
 
 def diff(open, unknown):
     """
@@ -138,6 +144,7 @@ def diff(open, unknown):
     results.sort()
     return results
 
+
 def usage():
     """Display usage information for this script."""
     print "Display list of files that are not known by Perforce."
@@ -146,6 +153,7 @@ def usage():
     print ""
     print "-h|--help"
     print "\tPrints this usage information."
+
 
 def main():
     """The main function for processing user input."""

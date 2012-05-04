@@ -11,14 +11,15 @@ import os.path
 import re
 import sys
 
+
 def main():
     pattern = ""
     replace = ""
     myext = ""
 
     # parse the command line arguments
-    shortopts = "dhvp:r:e:"
-    longopts = ["debug", "help", "verbose", "pattern", "replace", "ext"]
+    shortopts = "hp:r:e:"
+    longopts = ["help", "pattern", "replace", "ext"]
     try:
         opts, args = getopt.getopt(sys.argv[1:], shortopts, longopts)
     except getopt.GetoptError, err:
@@ -26,13 +27,9 @@ def main():
         print "Invoke with -h for help."
         sys.exit(2)
     for opt, val in opts:
-        if opt in ("-v", "--verbose"):
-            verbose = True
-        elif opt in ("-h", "--help"):
+        if opt in ("-h", "--help"):
             usage()
             sys.exit()
-        elif opt in ("-d", "--debug"):
-            debug = True
         elif opt in ("-p", "--pattern"):
             pattern = val
         elif opt in ("-r", "--replace"):
@@ -71,8 +68,9 @@ def main():
         elif '.hg' in dirs:
             dirs.remove('.hg')
 
+
 def usage():
-    print """Usage: findrepl.py [-dhv] -p <pattern> -r <replacement> -e <extension> [path]
+    print """Usage: findrepl.py [-h] -p <patt> -r <repl> -e <ext> [path]
 
 This script searches the specified directory tree (defaults to cwd) for
 files whose extension matches the -e argument, replacing occurrences of

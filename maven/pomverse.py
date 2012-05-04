@@ -12,6 +12,7 @@ from xml.etree.ElementTree import ElementTree
 
 global_props = dict()
 
+
 def parse_pom(filename):
     """
     Parse the pom file looking for dependencies, and displaying them
@@ -25,7 +26,7 @@ def parse_pom(filename):
         if propsTag is not None:
             for elem in propsTag.getiterator():
                 idx = elem.tag.rfind('}')
-                props[elem.tag[idx+1:]] = elem.text
+                props[elem.tag[idx + 1:]] = elem.text
                 if "properties" in props:
                     del props["properties"]
             global_props.update(props)
@@ -57,7 +58,8 @@ def parse_pom(filename):
         parentTag = doc.find("{http://maven.apache.org/POM/4.0.0}parent")
         if parentTag is not None:
             (artifact, version) = get_art_vers(parentTag)
-            print "%s/%s parent is %s/%s" % (pomArtifact, pomVersion, artifact, version)
+            print "{}/{} parent is {}/{}".format(
+                pomArtifact, pomVersion, artifact, version)
 
         def print_depends(elem):
             dps = elem.find("{http://maven.apache.org/POM/4.0.0}dependencies")
@@ -65,12 +67,14 @@ def parse_pom(filename):
                 print_depends(dps)
                 for elem in dps.findall("{http://maven.apache.org/POM/4.0.0}dependency"):
                     (artifact, version) = get_art_vers(elem)
-                    print "%s/%s depends on %s, %s" % (pomArtifact, pomVersion, artifact, version)
+                    print "{}/{} depends on {}, {}".format(
+                        pomArtifact, pomVersion, artifact, version)
 
         print_depends(doc)
         dpmTag = doc.find("{http://maven.apache.org/POM/4.0.0}dependencyManagement")
         if dpmTag is not None:
             print_depends(dpmTag)
+
 
 def main():
     # If argument is given, use that as top directory; otherwise use cwd.

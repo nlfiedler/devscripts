@@ -42,6 +42,7 @@ extensions = [
     'yaml'
 ]
 
+
 def setprop(file, baton):
     """
     Set the svn:keywords property to 'Id' on the passed file.
@@ -50,6 +51,7 @@ def setprop(file, baton):
     if svn_err is not None:
         print "Error: %s" % svn_err
         sys.exit(1)
+
 
 def main():
     # If argument is given, use that as top directory; otherwise use cwd.
