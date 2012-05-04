@@ -1,0 +1,8 @@
+#!/bin/bash
+#
+# Script to invoke pyflakes and pep8 for use with flymake in Emacs.
+#
+
+/usr/local/bin/pyflakes "$1"
+/usr/local/bin/pep8 "$1"
+true
