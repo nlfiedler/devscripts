@@ -18,8 +18,6 @@
 # [root@solaris]$ zpool create master $PWD/master
 # [root@solaris]$ zpool create slave $PWD/slave
 #
-# $Id$
-#
 
 from datetime import datetime
 import errno
