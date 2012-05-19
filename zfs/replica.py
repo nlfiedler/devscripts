@@ -196,6 +196,8 @@ def main():
     # parse the command line arguments
     shortopts = "h"
     longopts = ["help"]
+    # keep using getopt until Python 2.7 is available on OpenIndiana,
+    # then we can switch to using argparse
     try:
         opts, args = getopt.getopt(sys.argv[1:], shortopts, longopts)
     except getopt.GetoptError, err:
