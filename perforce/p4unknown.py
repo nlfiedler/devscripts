@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #
-# Copyright (c) 2010 Nathan Fiedler
+# Copyright (c) 2010-2012 Nathan Fiedler
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -15,7 +15,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
-# $Id$
+
 #
 # Invoke this script with '--help' option for detailed description of
 # what it does and how you can use it.

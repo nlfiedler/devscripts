@@ -1,7 +1,5 @@
 /*
  * Copyright (C) 2007-2009 Nathan Fiedler
- *
- * $Id$
  */
 
 /**
