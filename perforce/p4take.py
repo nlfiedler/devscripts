@@ -26,7 +26,6 @@
 #
 
 import argparse
-import os
 import sys
 
 import P4
@@ -49,8 +48,7 @@ def grab_job(p4, num, user):
         else:
             job['OwnedBy'] = user
             job['Status'] = 'inprogress'
-            p4.input = job
-            p4.run('job', '-i')
+            p4.save_job(job)
             print "Updated job {}".format(num)
     else:
         sys.stderr.write("warning: no such job {}\n".format(num))

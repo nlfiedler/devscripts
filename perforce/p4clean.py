@@ -7,6 +7,7 @@
 
 import argparse
 from datetime import datetime, timedelta
+import sys
 import P4
 
 
@@ -38,7 +39,7 @@ def delete_changes(p4, args, user):
 def main():
     """Parse command line arguments and do the work.
     """
-    desc =  '''Removes old shelved changes owned by the current user.
+    desc = '''Removes old shelved changes owned by the current user.
     By default, nothing is removed unless -y is passed (a la obliterate).
     Any changes made in the last week will be retained, unless -a is given.
     '''
