@@ -2,9 +2,10 @@
 #
 # Performs a search and replace on a set of files.
 #
-# Directories named '.svn' and '.hg' are ignored.
+# Directories named '.svn', '.git', and '.hg' are ignored.
 #
 
+# TODO: switch to argparse
 import getopt
 import os
 import os.path
@@ -67,6 +68,8 @@ def main():
             dirs.remove('.svn')
         elif '.hg' in dirs:
             dirs.remove('.hg')
+        elif '.git' in dirs:
+            dirs.remove('.git')
 
 
 def usage():
