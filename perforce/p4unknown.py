@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # Copyright (c) 2010-2012 Nathan Fiedler
 #
@@ -48,13 +48,13 @@ def client():
     lines = iter(output.splitlines())
     try:
         while True:
-            line = lines.next()
+            line = next(lines)
             if line.startswith("Client:"):
                 client = line.partition(":")[2].strip()
             elif line.startswith("Root:"):
                 root = line.partition(":")[2].strip()
             elif line.startswith("View:"):
-                line = lines.next()
+                line = next(lines)
                 while line.startswith("\t"):
                     line = line.strip()
                     # Ignore lines that start with '-' as they have no
@@ -62,7 +62,7 @@ def client():
                     if not line.startswith("-") and len(line) > 0:
                         line = line.replace("/...", "")
                         view.append(line)
-                    line = lines.next()
+                    line = next(lines)
     except StopIteration:
         pass
     # Convert the paths to absolute client paths.
@@ -147,12 +147,12 @@ def diff(open, unknown):
 
 def usage():
     """Display usage information for this script."""
-    print "Display list of files that are not known by Perforce."
-    print ""
-    print "Usage: p4uknown.py [-h]"
-    print ""
-    print "-h|--help"
-    print "\tPrints this usage information."
+    print("Display list of files that are not known by Perforce.")
+    print("")
+    print("Usage: p4uknown.py [-h]")
+    print("")
+    print("-h|--help")
+    print("\tPrints this usage information.")
 
 
 def main():
@@ -162,9 +162,9 @@ def main():
     longopts = ["help"]
     try:
         opts, args = getopt.getopt(sys.argv[1:], shortopts, longopts)
-    except getopt.GetoptError, err:
-        print str(err)
-        print "Invoke with -h for help."
+    except getopt.GetoptError as err:
+        print(str(err))
+        print("Invoke with -h for help.")
         sys.exit(2)
     for opt, val in opts:
         if opt in ("-h", "--help"):
@@ -182,7 +182,7 @@ def main():
         for m in diffs:
             # Convert the absolute path to a relative one.
             m = re.sub(cwd, ".", m)
-            print "? %s" % m
+            print("? %s" % m)
 
 if __name__ == "__main__":
     main()

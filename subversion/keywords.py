@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # Copyright (c) 2010 Nathan Fiedler
 #
@@ -49,7 +49,7 @@ def setprop(file, baton):
     """
     svn_err = wc.prop_set("svn:keywords", "Id", file, baton)
     if svn_err is not None:
-        print "Error: %s" % svn_err
+        print("Error: %s" % svn_err)
         sys.exit(1)
 
 

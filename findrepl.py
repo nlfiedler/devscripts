@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # Performs a search and replace on a set of files.
 #
@@ -23,9 +23,9 @@ def main():
     longopts = ["help", "pattern", "replace", "ext"]
     try:
         opts, args = getopt.getopt(sys.argv[1:], shortopts, longopts)
-    except getopt.GetoptError, err:
-        print str(err)
-        print "Invoke with -h for help."
+    except getopt.GetoptError as err:
+        print(str(err))
+        print("Invoke with -h for help.")
         sys.exit(2)
     for opt, val in opts:
         if opt in ("-h", "--help"):
@@ -41,8 +41,8 @@ def main():
             assert False, "unhandled option: %s" % opt
 
     if pattern == "" or replace == "" or myext == "":
-        print "Usage: findrepl.py [options] [<path>]"
-        print "Invoke with --help for helpful information"
+        print("Usage: findrepl.py [options] [<path>]")
+        print("Invoke with --help for helpful information")
         sys.exit(0)
 
     # if argument is given, use that as top directory; otherwise use cwd
@@ -73,7 +73,7 @@ def main():
 
 
 def usage():
-    print """Usage: findrepl.py [-h] -p <patt> -r <repl> -e <ext> [path]
+    print("""Usage: findrepl.py [-h] -p <patt> -r <repl> -e <ext> [path]
 
 This script searches the specified directory tree (defaults to cwd) for
 files whose extension matches the -e argument, replacing occurrences of
@@ -96,7 +96,7 @@ files whose extension matches the -e argument, replacing occurrences of
 
 -e|--ext <extension>
 \tFile name extension to find. [Required]
-"""
+""")
 
 if __name__ == "__main__":
     main()

@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # Python script to clean up old shelved Perforce changes owned by the current
 # user. Use -h to display usage information. This script requires the P4Python
@@ -29,11 +29,11 @@ def delete_changes(p4, args, user):
         if date <= week_ago or args.all:
             if args.delete:
                 p4.delete_shelve(change['Change'])
-                print "Deleted change {}".format(change['Change'])
+                print("Deleted change {}".format(change['Change']))
             else:
-                print "p4 shelve -dc {}".format(change['Change'])
+                print("p4 shelve -dc {}".format(change['Change']))
         else:
-            print "Ignoring recent change {}".format(change['Change'])
+            print("Ignoring recent change {}".format(change['Change']))
 
 
 def main():
@@ -60,7 +60,7 @@ def main():
                 print("This was report mode. Use -y to remove changes.")
         else:
             sys.stderr.write("Cannot retrieve current Perforce user\n")
-    except P4.P4Exception, e:
+    except P4.P4Exception as e:
         sys.stderr.write("error: p4 action failed: {}\n".format(e))
 
 

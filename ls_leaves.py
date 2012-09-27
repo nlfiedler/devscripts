@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # Find the leaf directories within the given set of paths
 # (defaulting to the current working directory) and display
@@ -30,7 +30,7 @@ def main():
     # Sort the results and output.
     leaves.sort()
     for leaf in leaves:
-        print leaf
+        print(leaf)
 
 if __name__ == "__main__":
     main()

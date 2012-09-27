@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # Counts lines of code in Python scripts. Bascially a fixed version
 # of http://code.activestate.com/recipes/527746-line-of-code-counter/
@@ -49,4 +49,4 @@ def count(root='.', recurse=True):
 
 if __name__ == '__main__':
     mini, maxi = count()
-    print "Maximal lines: {}\nMinimal lines: {}".format(maxi, mini)
+    print("Maximal lines: {}\nMinimal lines: {}".format(maxi, mini))

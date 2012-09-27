@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # Copyright (c) 2012 Nathan Fiedler
 #
@@ -49,7 +49,7 @@ def grab_job(p4, num, user):
             job['OwnedBy'] = user
             job['Status'] = 'inprogress'
             p4.save_job(job)
-            print "Updated job {}".format(num)
+            print("Updated job {}".format(num))
     else:
         sys.stderr.write("warning: no such job {}\n".format(num))
 
@@ -72,7 +72,7 @@ def main():
                 grab_job(p4, job, user['User'])
         else:
             sys.stderr.write("Cannot retrieve current Perforce user\n")
-    except P4.P4Exception, e:
+    except P4.P4Exception as e:
         sys.stderr.write("error: p4 action failed: {}\n".format(e))
 
 

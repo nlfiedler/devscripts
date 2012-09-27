@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # Python script that scans a directory tree looking for Maven pom files
 # (named pom.xml) and displaying the versions of the artifacts both
@@ -48,18 +48,18 @@ def parse_pom(filename):
                 version = "*"
             artTag = elem.find("{http://maven.apache.org/POM/4.0.0}artifactId")
             if artTag is None:
-                print >> sys.stderr, "missing %s/artifact tag" % elem.tag
+                print("missing %s/artifact tag" % elem.tag, file=sys.stderr)
             artifact = artTag.text
             return (artifact, version)
 
         (pomArtifact, pomVersion) = get_art_vers(doc)
         if pomVersion == "*":
-            print >> sys.stderr, "missing project/version tag"
+            print("missing project/version tag", file=sys.stderr)
         parentTag = doc.find("{http://maven.apache.org/POM/4.0.0}parent")
         if parentTag is not None:
             (artifact, version) = get_art_vers(parentTag)
-            print "{}/{} parent is {}/{}".format(
-                pomArtifact, pomVersion, artifact, version)
+            print("{}/{} parent is {}/{}".format(
+                pomArtifact, pomVersion, artifact, version))
 
         def print_depends(elem):
             dps = elem.find("{http://maven.apache.org/POM/4.0.0}dependencies")
@@ -67,8 +67,8 @@ def parse_pom(filename):
                 print_depends(dps)
                 for elem in dps.findall("{http://maven.apache.org/POM/4.0.0}dependency"):
                     (artifact, version) = get_art_vers(elem)
-                    print "{}/{} depends on {}, {}".format(
-                        pomArtifact, pomVersion, artifact, version)
+                    print("{}/{} depends on {}, {}".format(
+                        pomArtifact, pomVersion, artifact, version))
 
         print_depends(doc)
         dpmTag = doc.find("{http://maven.apache.org/POM/4.0.0}dependencyManagement")
