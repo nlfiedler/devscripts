@@ -25,7 +25,7 @@
 require 'optparse'
 
 # Typical source file extensions.
-EXTENSIONS = %w{ .go .java .pig .pl .pm .py .rb .sh .xml .yaml }
+EXTENSIONS = %w{ .c .go .h .java .pig .pl .pm .py .rb .scm .sh .xml .yaml }
 # List of files we always exclude from our search.
 EXCLUDES = %w{ . .. .svn .hg target }
 
