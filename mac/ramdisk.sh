@@ -1,17 +1,28 @@
 #!/bin/bash
 #
-# Set up a RAM disk and have it be the temporary "disk".
-# (add the following to ~/.profile)
+# Script that performs several tasks:
+#
+# 1. Set up a 1 GB RAM disk
+# 2. Spawn child shell process with TMPDIR set to RAM disk
+# 3. Eject RAM disk when child shell exits
 #
 
-RDISK=/Volumes/RamDisk
-mount | grep -q $RDISK
-if [ $? == 1 ]; then
-    # Create a ~1GB RAM disk, formatted as HFS+
-    DEV=`hdiutil attach -nomount ram://2100000`
-    diskutil erasevolume HFS+ "RamDisk" $DEV
+RNAME='RamDisk'
+RPATH="/Volumes/${RNAME}"
+
+# Check if already mounted
+mount | grep -q $RPATH
+if [ $? == 0 ]; then
+    echo "RAM disk already mounted"
+    exit 0
 fi
-if [ -d $RDISK ]; then
-    # FYI, TMPDIR is set via launchd_core_logic.c
-    declare -x TMPDIR=$RDISK
-fi
+
+# Create a ~1GB RAM disk, formatted as HFS+
+DEV=`hdiutil attach -nomount ram://2100000`
+diskutil erasevolume HFS+ $RNAME $DEV
+
+# Start child shell
+TMPDIR=$RPATH bash
+
+# Remove the RAM disk when the process exits
+diskutil eject $DEV
