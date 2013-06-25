@@ -13,13 +13,12 @@ RPATH="/Volumes/${RNAME}"
 # Check if already mounted
 mount | grep -q $RPATH
 if [ $? == 0 ]; then
-    echo "RAM disk already mounted"
-    exit 0
+    echo "Using existing RAM disk..."
+else
+    # Create a ~1GB RAM disk, formatted as HFS+
+    DEV=`hdiutil attach -nomount ram://2100000`
+    diskutil erasevolume HFS+ $RNAME $DEV
 fi
-
-# Create a ~1GB RAM disk, formatted as HFS+
-DEV=`hdiutil attach -nomount ram://2100000`
-diskutil erasevolume HFS+ $RNAME $DEV
 
 # Start child shell
 TMPDIR=$RPATH bash
