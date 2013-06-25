@@ -26,15 +26,18 @@ def delete_changes(p4, args, user, status='shelved'):
         try:
             date = datetime.strptime(change['Date'], '%Y/%m/%d %H:%M:%S')
         except ValueError:
-            sys.stderr.write('failed to parse date {} in change {}'.
-                format(change['Date'], change['Change']))
+            sys.stderr.write('failed to parse date {} in change {}'.format(
+                change['Date'], change['Change']))
         if date <= week_ago or args.all:
             if args.delete:
-                if status == 'shelved':
-                    p4.delete_shelve(change['Change'])
-                elif status == 'pending':
-                    p4.delete_change(change['Change'])
-                print("Deleted change {}".format(change['Change']))
+                try:
+                    if status == 'shelved':
+                        p4.delete_shelve(change['Change'])
+                    elif status == 'pending':
+                        p4.delete_change(change['Change'])
+                    print("Deleted change {}".format(change['Change']))
+                except P4.P4Exception as e:
+                    print("Error removing {}: {}".format(change['Change'], e))
             else:
                 print("p4 shelve -dc {}".format(change['Change']))
         else:
