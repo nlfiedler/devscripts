@@ -1,17 +1,16 @@
 #!/usr/bin/env python3
 #
-# Script to replicate one filesystem to another in a repeatable fashion.
-# Note that this script uses the -F option for 'zfs recv' such that the
-# destination file system is rolled back before receiving the
-# snapshot(s). This is necessary since otherwise the receive will fail
-# due to the mismatch in existing snapshots. This occurs because simply
-# listing a directory in the destination will modify the access times,
-# which causes a write to the file system. The alternative is to make
-# the destination read-only, but that is an extra step which can be
-# easily avoided.
+# Script to replicate one filesystem to another in a repeatable fashion. Note
+# that this script uses the -F option for 'zfs recv' such that the destination
+# file system is rolled back before receiving the snapshot(s). This is
+# necessary since otherwise the receive will fail due to the mismatch in
+# existing snapshots. This occurs because simply listing a directory in the
+# destination will modify the access times, which causes a write to the file
+# system. The alternative is to make the destination read-only, but that is an
+# extra step which can be easily avoided.
 #
-# To test this script, create two throw-away ZFS filesystems using the
-# mkfile command, as shown below:
+# To test this script, create two throw-away ZFS filesystems using the mkfile
+# command, as shown below:
 #
 # [root@solaris]$ mkfile 100m master
 # [root@solaris]$ mkfile 100m slave
@@ -158,10 +157,9 @@ def sendincremental(src, dst, tag1, tag2):
     the destination that spans the two snapshots.
     """
     if verbose:
-        print("zfs send -R -I {} {}@{} | zfs recv -F {}".\
-            format(tag1, src, tag2, dst))
-    send = subprocess.Popen(["zfs", "send", "-R", "-I", tag1, "{}@{}".\
-                                 format(src, tag2)],
+        print("zfs send -R -I {} {}@{} | zfs recv -F {}".format(
+            tag1, src, tag2, dst))
+    send = subprocess.Popen(["zfs", "send", "-R", "-I", tag1, "{}@{}".format(src, tag2)],
                             stdout=subprocess.PIPE)
     recv = subprocess.Popen(["zfs", "recv", "-F", dst], stdin=send.stdout,
                             stdout=subprocess.PIPE)
@@ -233,8 +231,7 @@ def main():
         dstsnaps = snapshots(dst)
         if dstsnaps is not None and len(dstsnaps) > 0 \
                 and dstsnaps[-1] not in snaps:
-            print("Destination snapshots out of sync with source, " +\
-                "destroy and try again.")
+            print("Destination snapshots out of sync with source, destroy and try again.")
             sys.exit(1)
         if len(snaps) == 1:
             # send the initial snapshot
