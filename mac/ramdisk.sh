@@ -13,7 +13,8 @@ RPATH="/Volumes/${RNAME}"
 # Check if already mounted
 mount | grep -q $RPATH
 if [ $? == 0 ]; then
-    echo "Using existing RAM disk..."
+    DEV=`mount | grep $RPATH | cut -d ' ' -f 1`
+    echo "Using existing RAM disk ${DEV}..."
 else
     # Create a ~1GB RAM disk, formatted as HFS+
     DEV=`hdiutil attach -nomount ram://2100000`
