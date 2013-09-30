@@ -115,6 +115,8 @@ def snapshots(fs):
     output = zfs.communicate()[0]
     if zfs.returncode != 0:
         raise OSError(errno.EIO, "zfs list returned {}".format(zfs.returncode))
+    if isinstance(output, bytes):
+        output = output.decode('utf-8')
     snaps = output.splitlines()
     prog = re.compile("@replica:\d{4}-\d{2}-\d{2}-\d{2}:\d{2}")
     snaps = [snap for snap in snaps if prog.search(snap)]
