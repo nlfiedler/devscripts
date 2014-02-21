@@ -18,7 +18,7 @@ if [ $? == 0 ]; then
 else
     # Create a ~1GB RAM disk, formatted as HFS+
     DEV=`hdiutil attach -nomount ram://2100000`
-    diskutil erasevolume HFS+ $RNAME $DEV
+    diskutil erasevolume "Case-sensitive HFS+" $RNAME $DEV
 fi
 
 # Start child shell
