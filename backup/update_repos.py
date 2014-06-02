@@ -4,6 +4,10 @@
 This is a highly specialized script that assumes that the repositories
 in question are bare (i.e. no working tree) and have a single remote.
 
+To create the initial backup repositories, clone them like so:
+
+$ git clone --mirror <git_url>
+
 """
 
 import os
@@ -28,11 +32,12 @@ def _call_git(gitdir, cmd):
     if cmd[0] == 'git':
         cmd = cmd[1:]
     try:
-        out = subprocess.check_output(['git', '--git-dir={}'.format(gitdir)] + cmd)
+        out = subprocess.check_output(['git', '--git-dir={}'.format(gitdir)] + cmd,
+                                      stderr=subprocess.STDOUT)
         return out.decode().splitlines()
     except subprocess.CalledProcessError as cpe:
-        sys.stderr.write('`git remote -v` failed with code {}\n{}\n'.format(
-            cpe.returncode, cpe.output))
+        sys.stderr.write('`{}` failed with code {}\n{}\n'.format(
+            cpe.cmd, cpe.returncode, cpe.output))
         sys.exit(os.EX_OSERR)
 
 
@@ -49,15 +54,6 @@ def _get_directories(path):
         mode = os.lstat(pathname)[stat.ST_MODE]
         if stat.S_ISDIR(mode):
             yield pathname
-
-
-def _is_git_repo(path):
-    """Determine if the given path is a Git repository or not.
-
-    :param path: path of the potential repository.
-
-    """
-    return os.path.exists(os.path.join(path, 'HEAD'))
 
 
 def _git_remote(path):
@@ -80,29 +76,13 @@ def _git_remote(path):
     return remote, fetch_url
 
 
-def _git_fetch(path):
-    """Update the Git repository with the remote contents.
-
-    :param path: path of the local Git repository.
-
-    """
-    remote, fetch_url = _git_remote(path)
-    cmd = ['git', '--git-dir={}'.format(path), 'fetch', remote]
-    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-    out, _ = proc.communicate()
-    if proc.returncode:
-        sys.stderr.write('git fetch failed with {}\n'.format(proc.returncode))
-        sys.stderr.write(out)
-        sys.exit(os.EX_OSERR)
-    return fetch_url
-
-
 def main():
     """Do the work."""
     ignored_list = []
     for candidate in sorted(_get_directories('.')):
-        if _is_git_repo(candidate):
-            fetch_url = _git_fetch(candidate)
+        if os.path.exists(os.path.join(candidate, 'HEAD')):
+            remote, fetch_url = _git_remote(candidate)
+            _call_git(candidate, ['fetch', remote])
             print('Fetched {} successfully for {}'.format(fetch_url, candidate))
         else:
             ignored_list.append(candidate)
