@@ -30,7 +30,7 @@ def main():
                         help="permissions for directories (default 755)")
     parser.add_argument('-x', '--exclude', nargs="*",
                         help="entries to ignore (can specify more than one)")
-    parser.add_argument('path', nargs="*", default=".",
+    parser.add_argument('-p', '--path', nargs="*", default=".",
                         help="one or more paths to process (default .)")
     args = parser.parse_args()
     fperms = int(args.file, 8)
