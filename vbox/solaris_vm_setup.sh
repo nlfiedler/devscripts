@@ -4,8 +4,9 @@
 #
 
 VMNAME='oi151a8'
-VDI="$HOME/VirtualBox VMs/$VMNAME/$VMNAME.vdi"
-ISO='$HOME/Downloads/oi-dev-151a8-text-x86.iso'
+MACHINES=`VBoxManage list systemproperties | awk -F : '/machine folder/ { sub("[ ]+", "", $2); print $2 }'`
+VDI="$MACHINES/$VMNAME/$VMNAME.vdi"
+ISO="$HOME/Downloads/oi-dev-151a8-text-x86.iso"
 
 if [ ! -f "$ISO" ]; then
     echo "Missing ISO image $ISO"
