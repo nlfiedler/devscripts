@@ -4,8 +4,8 @@
 #
 
 VMNAME='oi151a8'
-VDI="/Users/nfiedler/VirtualBox VMs/$VMNAME/$VMNAME.vdi"
-ISO='/Users/nfiedler/Downloads/oi-dev-151a8-text-x86.iso'
+VDI="$HOME/VirtualBox VMs/$VMNAME/$VMNAME.vdi"
+ISO='$HOME/Downloads/oi-dev-151a8-text-x86.iso'
 
 if [ ! -f "$ISO" ]; then
     echo "Missing ISO image $ISO"

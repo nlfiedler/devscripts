@@ -5,6 +5,7 @@
 # output for consumption by pyflakes.
 #
 
+import os
 import re
 import sys
 import subprocess
@@ -12,7 +13,7 @@ import subprocess
 #
 # Invoke 'pylint --generate-rcfile' and customize
 #
-rcfile = "/Users/nfiedler/.pylint"
+rcfile = os.path.expanduser("~/.pylint")
 pylint_args = ["/usr/local/bin/pylint",
                "--rcfile={}".format(rcfile),
                "--output-format=parseable",
