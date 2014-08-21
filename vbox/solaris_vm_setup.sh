@@ -8,6 +8,10 @@ MACHINES=`VBoxManage list systemproperties | awk -F : '/machine folder/ { sub("[
 VDI="$MACHINES/$VMNAME/$VMNAME.vdi"
 ISO="$HOME/Downloads/oi-dev-151a8-text-x86.iso"
 
+# Get the available memory and set aside 25% of that for the VM.
+MEM=`sysctl hw.memsize | awk -F : '{ sub("[ ]+", "", $2); print $2 }'`
+VMMEM=$(($MEM / 1048576 / 4))
+
 if [ ! -f "$ISO" ]; then
     echo "Missing ISO image $ISO"
     exit 1
@@ -21,7 +25,7 @@ fi
 
 echo 'Creating VirtualBox VM...'
 VBoxManage createvm --name $VMNAME --register
-VBoxManage modifyvm $VMNAME --ostype Solaris11_64 --memory 4096
+VBoxManage modifyvm $VMNAME --ostype Solaris11_64 --memory $VMMEM
 #VBoxManage modifyvm $VMNAME --vrde on --vrdeport 5800-5808
 VBoxManage modifyvm $VMNAME --vram 16
 VBoxManage modifyvm $VMNAME --nic1 nat
