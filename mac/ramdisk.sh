@@ -16,8 +16,8 @@ if [ $? == 0 ]; then
     DEV=`mount | grep $RPATH | cut -d ' ' -f 1`
     echo "Using existing RAM disk ${DEV}..."
 else
-    # Create a ~1GB RAM disk, formatted as HFS+
-    DEV=`hdiutil attach -nomount ram://2100000`
+    # Create a ~4GB RAM disk, formatted as HFS+
+    DEV=`hdiutil attach -nomount ram://8400000`
     diskutil erasevolume "Case-sensitive HFS+" $RNAME $DEV
 fi
 
