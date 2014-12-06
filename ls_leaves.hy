@@ -11,12 +11,14 @@
   (def paths
     (if (> (.--len-- args) 1)
       (rest args)
-      (, ".")))
+      ["."]))
   ; Walk the directory tree looking for directories with no subdirectories.
   (def leaves '())
   (for [path paths]
     (for [(, root dirs files) (os.walk path)]
-      (if (= (.--len-- dirs) 0)
+      (if (in ".git" dirs)
+        (.remove dirs ".git"))
+      (if (= (len dirs) 0)
         (.append leaves
           (if (.startswith root "./")
             (slice root 2)
