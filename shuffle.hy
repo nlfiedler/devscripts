@@ -1,3 +1,4 @@
+#!/usr/bin/env hy
 ;
 ; Hylang script to shuffle the lines of a text file.
 ;
@@ -13,7 +14,7 @@
       1)
     (do
       (with [[f (open (second args))]]
-        (def lines (.readlines f)))
+        (setv lines (.readlines f)))
       (random.shuffle lines)
       (list-comp (apply print [line] {"end" " "}) [line lines])
       0)))

@@ -1,3 +1,4 @@
+#!/usr/bin/env hy
 ;
 ; Find the total size of all files in the current directory tree,
 ; and compute the average file size in bytes. Symbolic links are
@@ -13,17 +14,16 @@
     (for [(, root dirs files) (os.walk ".")]
       (if (in ".git" dirs)
         (.remove dirs ".git"))
-        (def files (list-comp (join root name) [name files]))
-        (def files (list-comp name [name files] (not (islink name))))
-        (def count (+ count (len files)))
-        (def total (+ total (sum (list-comp (getsize name) [name files]))))
-      )
-    [total count]))
+        (setv files (list-comp (join root name) [name files]))
+        (setv files (list-comp name [name files] (not (islink name))))
+        (setv count (+ count (len files)))
+        (setv total (+ total (sum (list-comp (getsize name) [name files])))))
+    (, total count)))
 
 (defn count-all []
   "Compute the average file size for all files in the current tree."
-  (def [total count] (count-files))
-  (def avg (/ total count))
+  (setv (, total count) (count-files))
+  (setv avg (/ total count))
   (print (.format "Total: {0}\nCount: {1}\nAverage: {2:.2f}" total count avg))
   0)
 

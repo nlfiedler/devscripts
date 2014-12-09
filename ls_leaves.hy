@@ -1,3 +1,4 @@
+#!/usr/bin/env hy
 ;
 ; Find the leaf directories within the given set of paths (defaulting to the
 ; current working directory) and display the sorted result set.
