@@ -1,25 +1,6 @@
 #!/usr/bin/env python3
-#
-# Copyright (c) 2010-2012 Nathan Fiedler
-#
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#
+"""Display list of files that are not known by Perforce."""
 
-#
-# Invoke this script with '--help' option for detailed description of
-# what it does and how you can use it.
-#
 import getopt
 import os
 import re
@@ -38,8 +19,7 @@ def client():
     #	//depot1/... //myp4client/depot1/...
     #	-//depot2/... //myp4client/depot2/...
     #
-    p4 = subprocess.Popen(["p4", "client", "-o"],
-            stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    p4 = subprocess.Popen(["p4", "client", "-o"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     # Ignore the stderr output and only read the stdout output.
     output = p4.communicate()[0]
     client = None
@@ -85,8 +65,7 @@ def opened(mapping):
     # Typical 'p4 opened' output:
     # //root/path/file#1 - add default change (text)
     #
-    p4 = subprocess.Popen(["p4", "opened"],
-            stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    p4 = subprocess.Popen(["p4", "opened"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     # Ignore the error messages on stderr, only get the stdout output.
     output = p4.communicate()[0]
     lines = output.splitlines()
@@ -109,10 +88,9 @@ def missing():
     # The Perforce knowledge base shows the following example.
     #    find . -type f | p4 -x- have > /dev/null
     #
-    find = subprocess.Popen(["find", ".", "-type", "f"],
-            stdout=subprocess.PIPE)
+    find = subprocess.Popen(["find", ".", "-type", "f"], stdout=subprocess.PIPE)
     p4 = subprocess.Popen(["p4", "-x-", "have"], stdin=find.stdout,
-            stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                          stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     # TODO: add a find.stdout.close() here to allow find to receive a SIGPIPE if p4 exits
     # Ignore stdout output and get only the stderr output.
     output = p4.communicate()[1]
@@ -183,6 +161,7 @@ def main():
             # Convert the absolute path to a relative one.
             m = re.sub(cwd, ".", m)
             print("? %s" % m)
+
 
 if __name__ == "__main__":
     main()
