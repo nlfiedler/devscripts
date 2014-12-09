@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
-#
-# Python script to clean up old shelved and/or pending Perforce changes owned
-# by the current user. Use -h to display usage information. This script
-# requires the P4Python library to be installed. See
-# http://www.perforce.com/product/components/apis
-#
+"""Clean up shelved or pending changes.
+
+Python script to clean up old shelved and/or pending Perforce changes owned
+by the current user. Use -h to display usage information. This script
+requires the P4Python library to be installed. See
+http://www.perforce.com/product/components/apis
+
+"""
 
 import argparse
 from datetime import datetime, timedelta
@@ -15,11 +17,11 @@ import P4
 def delete_changes(p4, args, user, status='shelved'):
     """Delete the shelved or pending changes owned by the current user.
 
-    Keyword arguments:
-    p4 -- Perforce API
-    args -- command line arguments
-    user -- Perforce user object
-    status -- the change status to query for (e.g. 'shelved', 'pending')
+    :param p4: Perforce API
+    :param args: command line arguments
+    :param user: Perforce user object
+    :param status: the change status to query for (e.g. 'shelved', 'pending')
+
     """
     week_ago = datetime.now() - timedelta(7)
     for change in p4.iterate_changes('-u', user['User'], '-s', status):
@@ -45,8 +47,7 @@ def delete_changes(p4, args, user, status='shelved'):
 
 
 def main():
-    """Parse command line arguments and do the work.
-    """
+    """Parse command line arguments and do the work."""
     desc = '''Removes old shelved or pending changes owned by the current user.
     By default, nothing is removed unless -y is passed (a la obliterate).
     Any changes made in the last week will be retained, unless -a is given.
