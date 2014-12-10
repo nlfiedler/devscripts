@@ -8,37 +8,16 @@ To create the initial backup repositories, clone them like so:
 
 $ git clone --mirror <git_url>
 
+Requirements
+* python-sh (pip install sh)
+
 """
 
 import os
 import stat
-import subprocess
 import sys
 
-
-def _call_git(gitdir, cmd):
-    """Invoke git with the given command and git-dir path.
-
-    Returns the output from the command decoded as a list of strings.
-
-    :param gitdir: path to the Git repository's .git directory.
-    :param cmd: (list) command and arguments to invoke.
-
-    If an error occurs, this script will exit.
-
-    """
-    if cmd is None or not isinstance(cmd, list):
-        raise RuntimeError('cmd must be a non-empty list')
-    if cmd[0] == 'git':
-        cmd = cmd[1:]
-    try:
-        out = subprocess.check_output(['git', '--git-dir={}'.format(gitdir)] + cmd,
-                                      stderr=subprocess.STDOUT)
-        return out.decode().splitlines()
-    except subprocess.CalledProcessError as cpe:
-        sys.stderr.write('`{}` failed with code {}\n{}\n'.format(
-            cpe.cmd, cpe.returncode, cpe.output))
-        sys.exit(os.EX_OSERR)
+from sh import git
 
 
 def _get_directories(path):
@@ -62,12 +41,12 @@ def _git_remote(path):
     :param path: path of the local Git repository.
 
     """
-    output = _call_git(path, ['remote'])
+    output = git("--git-dir={}".format(path), "remote").splitlines()
     if len(output) > 1:
         sys.stderr.write('Too much output from `git remote` for {}'.format(path))
         sys.exit(os.EX_OSERR)
     remote = output[0]
-    output = _call_git(path, ['remote', '-v'])
+    output = git("--git-dir={}".format(path), "remote", "-v").splitlines()
     fetch_url = None
     for line in output:
         if line.startswith(remote) and line.endswith(' (fetch)'):
@@ -82,7 +61,7 @@ def main():
     for candidate in sorted(_get_directories('.')):
         if os.path.exists(os.path.join(candidate, 'HEAD')):
             remote, fetch_url = _git_remote(candidate)
-            _call_git(candidate, ['fetch', remote])
+            git("--git-dir={}".format(candidate), "fetch", remote)
             print('Fetched {} successfully for {}'.format(fetch_url, candidate))
         else:
             ignored_list.append(candidate)
