@@ -1,23 +1,24 @@
 #!/usr/bin/env python3
-"""Script to replicate one filesystem to another in a repeatable fashion.
+"""Script to replicate one ZFS filesystem to another in a repeatable fashion.
 
 Note that this script uses the -F option for 'zfs recv' such that the
 destination file system is rolled back before receiving the snapshot(s).
-This is necessary since otherwise the receive will fail due to the
-mismatch in existing snapshots. This occurs because simply listing a
-directory in the destination will modify the access times, which causes a
-write to the file system. The alternative is to make the destination
-read-only, but that is an extra step which can be easily avoided.
+This is necessary since otherwise the receive will fail due to the mismatch
+in existing snapshots. This occurs because simply listing a directory in
+the destination will modify the access times, which causes a write to the
+file system. The alternative is to make the destination read-only, but that
+is an extra step which can be easily avoided.
+
+Requirements:
+* python-sh (pip install sh)
 
 """
 #
-# To test this script, create two throw-away ZFS filesystems using the
-# mkfile command, as shown below:
+# To test this script, create two throw-away ZFS filesystems, where "tank"
+# is the name of the pool in which the file systems will be created:
 #
-# [root@solaris]$ mkfile 100m master
-# [root@solaris]$ mkfile 100m slave
-# [root@solaris]$ pfexec zpool create master $PWD/master
-# [root@solaris]$ pfexec zpool create slave $PWD/slave
+# $ sudo zfs create tank/source
+# $ sudo zfs create tank/target
 #
 
 import argparse
@@ -27,94 +28,81 @@ import re
 import subprocess
 import sys
 
-VERBOSE = False
-DEBUG = False
-
-
-def _call_proc(cmd):
-    """Invoke the command in a subprocess and return its output.
-
-    :param cmd: list of strings to pass to subprocess.call().
-
-    Raises CalledProcessError if the process exit code is non-zero.
-
-    """
-    if cmd is None or not isinstance(cmd, list):
-        raise RuntimeError("cmd must be a non-empty list")
-    if VERBOSE:
-        print(" ".join(cmd))
-    output = subprocess.check_output(cmd, stderr=subprocess.STDOUT)
-    output = output.decode()
-    if DEBUG:
-        for line in output.splitlines():
-            print("=> {}".format(line))
-    return output
+from sh import zfs
 
 
 def _disable_auto(fsys):
+    """Disable the auto-snapshot service for the given file system.
+
+    :param fsys: file system on which to set property.
+    :return: previous value for auto-snapshot propery.
+
     """
-    Disables the auto-snapshot service for the given file system,
-    returning the previous setting (true or false).
-    """
-    # get the previous setting for the property
-    output = _call_proc(["zfs", "get", "-Ho", "value", "com.sun:auto-snapshot", fsys])
-    # set the auto-snapshot property to false
-    _call_proc(["zfs", "set", "com.sun:auto-snapshot=false", fsys])
-    # return the previous setting
+    output = zfs.get("-Ho", "value", "com.sun:auto-snapshot", fsys)
+    zfs.set("com.sun:auto-snapshot=false", fsys)
     return output.strip()
 
 
 def _restore_auto(fsys, saved):
-    """
-    Restores the auto-snapshot property to the previously set value for
-    the given file system.
+    """Restore the auto-snapshot property to the previously set value.
+
+    :param fsys: file system on which to set property.
+    :param saved: previous value of auto-snapshot property
+
     """
     # zfs get returns '-' when the property is not set.
     if saved != "-":
-        _call_proc(["zfs", "set", "com.sun:auto-snapshot={}".format(saved), fsys])
+        zfs.set("com.sun:auto-snapshot={}".format(saved), fsys)
 
 
 def _take_snapshot(fsys):
-    """
+    """Create a snapshot on the named file system.
+
     Creates a snapshot for fsys whose name is today's date and time in the
     following format: %Y-%m-%d-%H:%M, and returns that name. The time is
     in UTC.
+
+    :param fsys: file system on which to create snapshot.
+    :return: name of snapshot that was created.
+
     """
     # make a snapshot of the source file system with the date and time
     # as the name
     today = datetime.utcnow()
     tag = today.strftime("%Y-%m-%d-%H:%M")
-    _call_proc(["zfs", "snapshot", "{}@replica:{}".format(fsys, tag)])
+    zfs.snapshot("{}@replica:{}".format(fsys, tag))
     return tag
 
 
 def _our_snapshots(fsys):
-    """
+    """Return a list of the snapshots created by this script.
+
     Get our mananged snapshots for the given file system, such that they
     are named "replica:" followed by a date in the ISO 8601 format (i.e.
     YYYY-mm-dd-HH:MM).
+
+    :param fsys: file system on which to find snapshots.
+    :return: list of snapshot names.
+
     """
-    output = _call_proc(["zfs", "list", "-t", "snapshot", "-Hr", fsys])
+    output = zfs.list("-t", "snapshot", "-Hr", fsys)
     snaps = output.splitlines()
     prog = re.compile(r"@replica:\d{4}-\d{2}-\d{2}-\d{2}:\d{2}")
     snaps = [snap for snap in snaps if prog.search(snap)]
     snaps = [snap.split('\t')[0] for snap in snaps]
     snaps = [snap.split('@')[1] for snap in snaps]
     snaps.sort()
-    if DEBUG:
-        print("Existing snapshots on {}...".format(fsys))
-        for snap in snaps:
-            print(snap)
     return snaps
 
 
 def _send_snapshot(src, dst, tag):
+    """Send a replication stream for a single snapshot.
+
+    :param src: source file system
+    :param dst: destination file system
+    :param tag: snapshot to be sent
+
     """
-    Send a replication stream for a single snapshot from the source
-    filesystem to the destination.
-    """
-    if VERBOSE:
-        print("zfs send -R {}@{} | zfs recv -F {}".format(src, tag, dst))
     send = subprocess.Popen(["zfs", "send", "-R", "{}@{}".format(src, tag)],
                             stdout=subprocess.PIPE)
     recv = subprocess.Popen(["zfs", "recv", "-F", dst], stdin=send.stdout,
@@ -130,12 +118,16 @@ def _send_snapshot(src, dst, tag):
 
 
 def _send_incremental(src, dst, tag1, tag2):
+    """Send an incremental replication stream from source to target.
+
+    :param src: source file system
+    :param dst: destination file system
+    :param tag1: starting snapshot
+    :param tag2: ending snapshot
+
     """
-    Send an incremental replication stream from the source filesystem to
-    the destination that spans the two snapshots.
-    """
-    if VERBOSE:
-        print("zfs send -R -I {} {}@{} | zfs recv -F {}".format(tag1, src, tag2, dst))
+    # Tried this with python-sh but recv failed to read from send
+    # zfs.recv(zfs.send("-R", "-I", tag1, "{}@{}".format(src, tag2), _piped=True), "-F", dst)
     send = subprocess.Popen(["zfs", "send", "-R", "-I", tag1, "{}@{}".format(src, tag2)],
                             stdout=subprocess.PIPE)
     recv = subprocess.Popen(["zfs", "recv", "-F", dst], stdin=send.stdout,
@@ -148,15 +140,6 @@ def _send_incremental(src, dst, tag1, tag2):
         raise subprocess.CalledProcessError(send.returncode, "zfs send")
     if recv.returncode != 0 and recv.returncode is not None:
         raise subprocess.CalledProcessError(recv.returncode, "zfs recv")
-
-
-def _destroy_snapshot(fsys, snap):
-    """
-    Destroy the named snapshot in the given file system.
-    """
-    output = _call_proc(["zfs", "destroy", "{}@{}".format(fsys, snap)])
-    if DEBUG:
-        print(output)
 
 
 def _create_and_send_snapshot(src, dst):
@@ -199,14 +182,14 @@ def _prune_old_snapshots(src, dst):
     snaps = _our_snapshots(src)
     oldsnaps = snaps[:-2]
     for snap in oldsnaps:
-        _destroy_snapshot(src, snap)
+        zfs.destroy("{}@{}".format(src, snap))
     # prune old snapshots in destination file system
     dstsnaps = _our_snapshots(dst)
     if dstsnaps is None or len(dstsnaps) == 0:
         raise OSError("Failed to create new snapshot in {}".format(dst))
     oldsnaps = dstsnaps[:-2]
     for snap in oldsnaps:
-        _destroy_snapshot(dst, snap)
+        zfs.destroy("{}@{}".format(dst, snap))
 
 
 def main():
