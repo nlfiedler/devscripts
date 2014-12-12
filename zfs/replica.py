@@ -23,12 +23,27 @@ Requirements:
 
 import argparse
 from datetime import datetime
+import logging
 import os
 import re
 import subprocess
 import sys
 
 from sh import zfs
+
+LOG = logging.getLogger('replica')
+DEFAULT_LOG_FORMAT = '[%(process)d] <%(asctime)s> (%(name)s) {%(levelname)s} %(message)s'
+DEFAULT_LOG_FILE = '/var/log/replica.log'
+
+
+def _configure_logging():
+    """Configure the logging system."""
+    LOG.setLevel(logging.INFO)
+    handler = logging.FileHandler(DEFAULT_LOG_FILE)
+    handler.setLevel(logging.INFO)
+    formatter = logging.Formatter(DEFAULT_LOG_FORMAT)
+    handler.setFormatter(formatter)
+    LOG.addHandler(handler)
 
 
 def _disable_auto(fsys):
@@ -40,6 +55,7 @@ def _disable_auto(fsys):
     """
     output = zfs.get("-Ho", "value", "com.sun:auto-snapshot", fsys)
     zfs.set("com.sun:auto-snapshot=false", fsys)
+    LOG.info('disabled auto-snapshot on {}'.format(fsys))
     return output.strip()
 
 
@@ -53,6 +69,7 @@ def _restore_auto(fsys, saved):
     # zfs get returns '-' when the property is not set.
     if saved != "-":
         zfs.set("com.sun:auto-snapshot={}".format(saved), fsys)
+        LOG.info('set auto-snapshot to {} on {}'.format(saved, fsys))
 
 
 def _take_snapshot(fsys):
@@ -70,7 +87,9 @@ def _take_snapshot(fsys):
     # as the name
     today = datetime.utcnow()
     tag = today.strftime("%Y-%m-%d-%H:%M")
-    zfs.snapshot("{}@replica:{}".format(fsys, tag))
+    snap_name = "{}@replica:{}".format(fsys, tag)
+    zfs.snapshot(snap_name)
+    LOG.info('created snapshot {}'.format(snap_name))
     return tag
 
 
@@ -85,6 +104,7 @@ def _our_snapshots(fsys):
     :return: list of snapshot names.
 
     """
+    LOG.info('fetching snapshots')
     output = zfs.list("-t", "snapshot", "-Hr", fsys)
     snaps = output.splitlines()
     prog = re.compile(r"@replica:\d{4}-\d{2}-\d{2}-\d{2}:\d{2}")
@@ -103,6 +123,7 @@ def _send_snapshot(src, dst, tag):
     :param tag: snapshot to be sent
 
     """
+    LOG.info('sending full snapshot from {} to {}'.format(src, dst))
     send = subprocess.Popen(["zfs", "send", "-R", "{}@{}".format(src, tag)],
                             stdout=subprocess.PIPE)
     recv = subprocess.Popen(["zfs", "recv", "-F", dst], stdin=send.stdout,
@@ -111,6 +132,7 @@ def _send_snapshot(src, dst, tag):
     send.stdout.close()
     # Read the outputs so the process finishes, but ignore them.
     recv.communicate()
+    LOG.info('full snapshot sent')
     if send.returncode != 0 and send.returncode is not None:
         raise subprocess.CalledProcessError(send.returncode, "zfs send")
     if recv.returncode != 0 and recv.returncode is not None:
@@ -126,6 +148,7 @@ def _send_incremental(src, dst, tag1, tag2):
     :param tag2: ending snapshot
 
     """
+    LOG.info('sending incremental snapshot from {} to {}'.format(src, dst))
     # Tried this with python-sh but recv failed to read from send
     # zfs.recv(zfs.send("-R", "-I", tag1, "{}@{}".format(src, tag2), _piped=True), "-F", dst)
     send = subprocess.Popen(["zfs", "send", "-R", "-I", tag1, "{}@{}".format(src, tag2)],
@@ -136,6 +159,7 @@ def _send_incremental(src, dst, tag1, tag2):
     send.stdout.close()
     # Read the outputs so the process finishes, but ignore them.
     recv.communicate()
+    LOG.info('incremental snapshot sent')
     if send.returncode != 0 and send.returncode is not None:
         raise subprocess.CalledProcessError(send.returncode, "zfs send")
     if recv.returncode != 0 and recv.returncode is not None:
@@ -183,6 +207,7 @@ def _prune_old_snapshots(src, dst):
     oldsnaps = snaps[:-2]
     for snap in oldsnaps:
         zfs.destroy("{}@{}".format(src, snap))
+        LOG.info('deleted old snapshot {}'.format(snap))
     # prune old snapshots in destination file system
     dstsnaps = _our_snapshots(dst)
     if dstsnaps is None or len(dstsnaps) == 0:
@@ -190,6 +215,7 @@ def _prune_old_snapshots(src, dst):
     oldsnaps = dstsnaps[:-2]
     for snap in oldsnaps:
         zfs.destroy("{}@{}".format(dst, snap))
+        LOG.info('deleted old snapshot {}'.format(snap))
 
 
 def main():
@@ -206,6 +232,8 @@ be automatically pruned such that the two most recent are retained."""
     args = parser.parse_args()
     src = args.src
     dst = args.dest
+
+    _configure_logging()
 
     # disable the auto-snapshot service to prevent spurious failures
     try:
