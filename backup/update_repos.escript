@@ -20,11 +20,7 @@ main([]) ->
     Filepaths = [filename:join(Cwd, Name) || Name <- Filenames],
 
     % keep only the directories
-    IsDirectory = fun(Filepath) ->
-        {ok, FileInfo} = file:read_file_info(Filepath),
-        FileInfo#file_info.type == directory
-    end,
-    Directories = lists:filter(IsDirectory, Filepaths),
+    Directories = lists:filter(fun filelib:is_dir/1, Filepaths),
 
     % keep only the git repositories
     IsRepository = fun(Filepath) ->
@@ -44,7 +40,7 @@ main([]) ->
 process_repo(Repo) ->
     Remotes = get_remotes(Repo),
     FetchRemote = fun(Name, Url) ->
-        FetchOut = os:cmd(io_lib:format("git --git-dir=~s fetch ~s", [Repo, Name])),
+        FetchOut = os:cmd(io_lib:format("git --git-dir='~s' fetch ~s", [Repo, Name])),
         io:format("~s", [FetchOut]),
         Dir = filename:basename(Repo),
         io:format("Fetched ~s successfully for ~s~n", [Url, Dir])
@@ -54,7 +50,7 @@ process_repo(Repo) ->
 
 % Extract the fetch remotes for the named repository, as a list of tuples.
 get_remotes(Path) ->
-    RemoteOut = os:cmd(io_lib:format("git --git-dir=~s remote -v", [Path])),
+    RemoteOut = os:cmd(io_lib:format("git --git-dir='~s' remote -v", [Path])),
     % remote format: Name [tab] Url [space] "(fetch)" | "(push)"
     Lines = re:split(RemoteOut, "\n", [{return, list}]),
     Remotes = lists:filter(fun(Line) -> length(Line) > 0 end, Lines),
