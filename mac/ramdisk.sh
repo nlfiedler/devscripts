@@ -2,7 +2,7 @@
 #
 # Script that performs several tasks:
 #
-# 1. Set up a 1 GB RAM disk
+# 1. Set up a 2GB RAM disk
 # 2. Spawn child shell process with TMPDIR set to RAM disk
 # 3. Eject RAM disk when child shell exits
 #
@@ -16,8 +16,8 @@ if [ $? == 0 ]; then
     DEV=`mount | grep $RPATH | cut -d ' ' -f 1`
     echo "Using existing RAM disk ${DEV}..."
 else
-    # Create a ~4GB RAM disk, formatted as HFS+
-    DEV=`hdiutil attach -nomount ram://8400000`
+    # Create a ~2GB RAM disk, formatted as HFS+
+    DEV=`hdiutil attach -nomount ram://4200000`
     diskutil erasevolume "Case-sensitive HFS+" $RNAME $DEV
 fi
 
