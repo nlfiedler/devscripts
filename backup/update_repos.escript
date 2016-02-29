@@ -33,18 +33,17 @@ main([]) ->
     Repositories = lists:filter(IsRepository, Directories),
 
     % run git-fetch on each remote of each repository
-    lists:foreach(fun process_repo/1, Repositories).
-
-% Fetch the latest upstream content for each remote of the repo.
-process_repo(Repo) ->
-    Remotes = get_remotes(Repo),
-    FetchRemote = fun({Name, Url}) ->
-        FetchOut = os:cmd(io_lib:format("git --git-dir='~s' fetch ~s", [Repo, Name])),
-        io:format("~s", [FetchOut]),
-        Dir = filename:basename(Repo),
-        io:format("Fetched ~s successfully for ~s~n", [Url, Dir])
+    ProcessRepo = fun(Repo) ->
+        Remotes = get_remotes(Repo),
+        FetchRemote = fun({Name, Url}) ->
+            FetchOut = os:cmd(io_lib:format("git --git-dir='~s' fetch ~s", [Repo, Name])),
+            io:format("~s", [FetchOut]),
+            Dir = filename:basename(Repo),
+            io:format("Fetched ~s successfully for ~s~n", [Url, Dir])
+        end,
+        lists:foreach(FetchRemote, Remotes)
     end,
-    lists:foreach(FetchRemote, Remotes).
+    lists:foreach(ProcessRepo, Repositories).
 
 % Extract the fetch remotes for the named repository, as a list of tuples.
 get_remotes(Path) ->
