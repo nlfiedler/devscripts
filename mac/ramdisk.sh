@@ -7,9 +7,6 @@
 # 3. Eject RAM disk when child shell exits
 #
 
-RNAME='RamDisk'
-RPATH="/Volumes/${RNAME}"
-
 #
 # Get the size in bytes of the available RAM on this system, then divide by
 # 8 and divide that by the sector size (512 bytes) to arrive at the number
@@ -17,18 +14,24 @@ RPATH="/Volumes/${RNAME}"
 #
 let SECTORS=`sysctl -n hw.memsize`/8/512
 
-# Check if already mounted
-mount | grep -q $RPATH
+#
+# Create the RAM disk now, if not already created. Otherwise, work out what
+# the device identifer and mount point are so we can set the temp dir and
+# eventually eject the disk.
+#
+`diskutil mount RamDisk > /dev/null 2>&1`
 if [ $? == 0 ]; then
-    DEV=`mount | grep $RPATH | cut -d ' ' -f 1`
-    echo "Using existing RAM disk ${DEV}..."
+    echo "Using existing RamDisk..."
 else
     DEV=`hdiutil attach -nomount ram://$SECTORS`
-    diskutil erasevolume "Case-sensitive HFS+" $RNAME $DEV
+    diskutil erasevolume "Case-sensitive HFS+" RamDisk $DEV
 fi
+DISK_INFO=`diskutil info RamDisk`
+DEVICE_NODE=`echo $DISK_INFO | grep 'Device Node:' | awk '{print $3}'`
+MOUNT_POINT=`echo $DISK_INFO | grep 'Mount Point:' | awk '{print $3}'`
 
 # Start child shell
-TMPDIR=$RPATH bash
+TMPDIR=$MOUNT_POINT bash
 
 # Remove the RAM disk when the process exits
-diskutil eject $DEV
+diskutil eject $DEVICE_NODE
