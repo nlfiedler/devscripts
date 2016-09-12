@@ -27,8 +27,8 @@ else
     diskutil erasevolume "Case-sensitive HFS+" RamDisk $DEV
 fi
 DISK_INFO=`diskutil info RamDisk`
-DEVICE_NODE=`echo $DISK_INFO | grep 'Device Node:' | awk '{print $3}'`
-MOUNT_POINT=`echo $DISK_INFO | grep 'Mount Point:' | awk '{print $3}'`
+DEVICE_NODE=`echo "$DISK_INFO" | grep 'Device Node:' | awk '{print $3}'`
+MOUNT_POINT=`echo "$DISK_INFO" | grep 'Mount Point:' | awk '{print $3}'`
 
 # Start child shell
 TMPDIR=$MOUNT_POINT bash
