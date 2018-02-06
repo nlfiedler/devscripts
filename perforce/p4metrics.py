@@ -4,6 +4,7 @@
 import argparse
 from collections import defaultdict
 import re
+import sys
 
 import P4
 
@@ -13,6 +14,7 @@ JOB_REX = re.compile(r'^[jJ][oO][bB][sS] ?:')
 
 
 class P4Changelist:
+
     """A changelist, as reported by p4 changes."""
 
     def __init__(self):
@@ -34,6 +36,7 @@ class P4Changelist:
 
 
 class ChangesHandler(P4.OutputHandler):
+
     """OutputHandler for p4 changes, passes changelists to callback function."""
 
     def __init__(self, callback):
@@ -76,7 +79,6 @@ def extract_jobs(desc):
     return None
 
 
-
 def first_dict(result_list):
     """Return the first dict from a p4 result list."""
     for e in result_list:
@@ -85,7 +87,7 @@ def first_dict(result_list):
     return None
 
 
-def process_changes(p4, username, before_change):
+def process_changes(p4, username, after_change):
     """Collect metrics from the changes."""
     change_count = 0
     all_jobs = list()
@@ -99,9 +101,9 @@ def process_changes(p4, username, before_change):
             all_jobs.extend(jobs)
 
     cmd = ["changes", "-l", "-u", username]
-    if before_change:
+    if after_change:
         cmd.append("-e")
-        cmd.append(before_change)
+        cmd.append(after_change)
     handler = ChangesHandler(callback)
     with p4.using_handler(handler):
         p4.run(cmd)
@@ -127,14 +129,14 @@ def main():
     """Run P4 commands to collect metrics."""
     desc = """Examine p4 changes and jobs to report metrics."""
     parser = argparse.ArgumentParser(description=desc)
-    parser.add_argument('--before', type=int,
-                        help="select changes before (and including) the given change")
+    parser.add_argument('--after', type=int,
+                        help="select changes after (and including) the given change")
     args = parser.parse_args()
     p4 = P4.P4()
     p4.connect()
     user = p4.fetch_user()
     if user:
-        process_changes(p4, user["User"], args.before)
+        process_changes(p4, user["User"], args.after)
     else:
         sys.stderr.write("Cannot retrieve current Perforce user\n")
 
