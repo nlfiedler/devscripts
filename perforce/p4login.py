@@ -1,19 +1,18 @@
-#!/usr/bin/env python3
-"""Script to automate logging into Perforce.
+#!/usr/bin/env python
+"""Script to automate logging into Perforce."""
 
-Use P4API to log in to the server.
-
-"""
-
-import P4
+import subprocess
+import sys
 
 
 def main():
     """Log in to the Perforce server."""
     # Yep, pretty much that easy.
-    p4 = P4.P4()
-    p4.connect()
-    p4.run_login()
+    result = subprocess.check_output(['p4', 'set', '-q', 'P4PASSWD'])
+    passwd = result.strip().split('=')[1]
+    proc = subprocess.Popen(['p4', 'login'], stdin=subprocess.PIPE)
+    proc.communicate(passwd)
+    sys.exit(proc.returncode)
 
 
 if __name__ == "__main__":
